@@ -1,0 +1,149 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <style>
+      /* El host inyecta los tokens de diseño de Orca como custom properties. */
+      body {
+        margin: 0;
+        padding: 12px;
+        font-family: system-ui, sans-serif;
+        font-size: 13px;
+        color: var(--foreground, #ddd);
+        background: var(--background, transparent);
+      }
+      h1 { font-size: 14px; margin: 0 0 4px; }
+      p { margin: 0 0 10px; color: var(--muted-foreground, #999); }
+      select {
+        width: 100%;
+        margin: 6px 0 10px;
+        padding: 5px;
+        border: 1px solid var(--border, #555);
+        border-radius: 6px;
+        background: var(--secondary, #2a2a2a);
+        color: var(--foreground, #ddd);
+        font: inherit;
+      }
+      .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+      button {
+        padding: 7px 8px;
+        border: 1px solid var(--border, #555);
+        border-radius: 6px;
+        background: var(--secondary, #2a2a2a);
+        color: var(--foreground, #ddd);
+        cursor: pointer;
+        font: inherit;
+        text-align: left;
+      }
+      button:hover { border-color: var(--primary, #8ab4f8); }
+      button.wide { grid-column: 1 / -1; }
+      .status { margin-top: 10px; min-height: 1.4em; color: var(--muted-foreground, #999); white-space: pre-wrap; }
+      code { font-family: ui-monospace, monospace; font-size: 12px; }
+      hr { border: 0; border-top: 1px solid var(--border, #444); margin: 12px 0; }
+    </style>
+  </head>
+  <body>
+    <h1>NaN</h1>
+    <p>
+      El panel no puede hacer red (CSP del host), así que lanza <code>nan …</code> en la
+      terminal que elijas. Los avisos de cuota van por el worker (⌘J → «NaN: …»).
+    </p>
+
+    <button id="refresh" class="wide">↻ Terminales del worktree activo</button>
+    <select id="terms" hidden></select>
+
+    <div class="grid" id="actions" hidden>
+      <button data-cmd="nan quota">cuota por modelo</button>
+      <button data-cmd="nan usage">consumo 24h / mes</button>
+      <button data-cmd="nan models">modelos disponibles</button>
+      <button data-cmd="nan billing">suscripción</button>
+      <button data-cmd="nan ping">ping (latencia y modelo real)</button>
+      <button data-cmd="nan status">status (una línea)</button>
+      <button data-cmd="nan config env" class="wide">config: variables de entorno</button>
+      <button data-cmd="nan config opencode" class="wide">config: opencode.json</button>
+      <button data-cmd="nan config pi" class="wide">config: Pi (models + settings)</button>
+    </div>
+
+    <p class="status" id="status"></p>
+
+    <hr />
+    <p>
+      Comandos del worker (Cmd+J): <code>NaN: cuota por modelo</code> (⌘⌥N),
+      <code>consumo</code>, <code>suscripción</code>, <code>comprobar umbral 80 %</code>.
+      Además avisa solo cuando un agente termina y algún modelo pasa del 80 %.
+    </p>
+
+    <script>
+      'use strict'
+      var seq = 0
+      var pending = {}
+      var statusEl = document.getElementById('status')
+      var termsEl = document.getElementById('terms')
+      var actionsEl = document.getElementById('actions')
+
+      function call(action, params) {
+        return new Promise(function (resolve) {
+          var requestId = 'req-' + ++seq
+          pending[requestId] = resolve
+          // Origen opaco: '*' es el único targetOrigin posible; el host verifica la ventana.
+          window.parent.postMessage(
+            { type: 'orca-panel-action', requestId: requestId, action: action, params: params },
+            '*'
+          )
+        })
+      }
+
+      window.addEventListener('message', function (event) {
+        var data = event.data
+        if (!data || data.type !== 'orca-panel-action-result') return
+        var resolve = pending[data.requestId]
+        if (!resolve) return
+        delete pending[data.requestId]
+        resolve(data)
+      })
+
+      function refresh() {
+        call('workspace.readContext').then(function (result) {
+          if (!result.ok) {
+            statusEl.textContent = 'sin contexto: ' + (result.error || result.errorCode)
+            return
+          }
+          if (!result.value || result.value.terminals.length === 0) {
+            statusEl.textContent = 'no hay worktree enfocado o no tiene terminales abiertas'
+            termsEl.hidden = true
+            actionsEl.hidden = true
+            return
+          }
+          termsEl.innerHTML = ''
+          result.value.terminals.forEach(function (terminal, i) {
+            var option = document.createElement('option')
+            option.value = terminal.id
+            option.textContent = 'terminal ' + (i + 1) + ' · ' + terminal.id
+            termsEl.appendChild(option)
+          })
+          termsEl.hidden = false
+          actionsEl.hidden = false
+          statusEl.textContent = result.value.displayName + ' @ ' + result.value.branch
+        })
+      }
+
+      document.getElementById('refresh').addEventListener('click', refresh)
+
+      actionsEl.addEventListener('click', function (event) {
+        var button = event.target.closest('button[data-cmd]')
+        if (!button) return
+        // Solo escribe la orden y pulsa Enter en la terminal elegida — la ejecuta
+        // el shell del usuario, con su PATH (donde tiene que estar `nan`).
+        call('terminal.sendText', { terminalId: termsEl.value, text: button.dataset.cmd, enter: true }).then(
+          function (result) {
+            statusEl.textContent = result.ok
+              ? 'enviado: ' + button.dataset.cmd
+              : 'fallo: ' + (result.error || result.errorCode)
+          }
+        )
+      })
+
+      refresh()
+    </script>
+  </body>
+</html>

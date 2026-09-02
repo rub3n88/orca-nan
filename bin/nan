@@ -1,0 +1,307 @@
+#!/usr/bin/env python3
+"""nan — la suscripción de NaN (nan.builders) desde la terminal.
+
+  nan quota              cuota por modelo (usado / cap / reset)
+  nan usage              consumo 24h · mes · 30d · total, por modelo
+  nan models             modelos servidos ahora mismo + cuota + notas
+  nan billing            estado de la suscripción
+  nan ping [modelo...]   latencia real y qué modelo ha servido de verdad
+  nan status             una línea (para statusline / prompt)
+  nan config <destino>   snippet listo para pegar: env | opencode | pi | cursor | zed
+  nan --json <cmd>       salida JSON cruda
+
+Key: $NAN_API_KEY o ~/.config/nan/api-key. La misma key sirve para la API de
+inferencia (api.nan.builders/v1) y para el backend del panel
+(cloud-api.nan.builders), que es de donde salen cuotas y billing.
+"""
+import json
+import os
+import sys
+import time
+import urllib.error
+import urllib.request
+from datetime import datetime, timezone
+
+INFERENCE = "https://api.nan.builders/v1"
+CLOUD = "https://cloud-api.nan.builders"
+KEY_FILE = os.path.expanduser("~/.config/nan/api-key")
+
+# Ficha por modelo según la doc de NaN (snapshot 2026-09). Solo se usa para los
+# snippets de config y las notas de `models`; lo vivo (qué modelos hay, cuotas)
+# sale de la API. Si un modelo no está aquí, se generan valores conservadores.
+MODEL_NOTES = {
+    "qwen3.6": {"name": "Qwen 3.6", "ctx": 262144, "input": ["text", "image"], "note": "multimodal, reasoning"},
+    "gemma4": {"name": "Gemma 4", "ctx": 262144, "input": ["text", "image"], "note": "multimodal"},
+    "deepseek-v4-flash": {"name": "DeepSeek V4 Flash", "ctx": 500000, "input": ["text"], "note": "solo texto, 1M ctx según doc"},
+    "mimo-v2.5": {"name": "Xiaomi MiMo V2.5", "ctx": 500000, "input": ["text", "image", "audio"], "note": "omnimodal"},
+    "glm5.2": {"name": "GLM 5.2", "ctx": 500000, "input": ["text"], "note": "premium · usar stream:true · ventana 4h"},
+    "glm5.3-flash": {"name": "GLM 5.3 Flash", "ctx": 262144, "input": ["text"], "note": "reasoning por defecto (verboso)"},
+    "qwen3.8-flash": {"name": "Qwen 3.8 Flash", "ctx": 262144, "input": ["text"], "note": ""},
+    "qwen3-embedding": {"name": "Qwen3 Embedding", "ctx": 0, "input": ["text"], "note": "embeddings 4096d"},
+    "rerank": {"name": "Rerank", "ctx": 0, "input": ["text"], "note": "reranker"},
+    "whisper": {"name": "Whisper", "ctx": 0, "input": ["audio"], "note": "STT (25 MB máx)"},
+    "kokoro": {"name": "Kokoro", "ctx": 0, "input": ["text"], "note": "TTS"},
+    "flux-2-klein": {"name": "Flux 2 Klein", "ctx": 0, "input": ["text"], "note": "imagen · 100 req/mes"},
+}
+CHAT_EXCLUDE = {"qwen3-embedding", "rerank", "whisper", "kokoro", "flux-2-klein"}
+
+
+def die(msg, code=1):
+    print(f"nan: {msg}", file=sys.stderr)
+    sys.exit(code)
+
+
+def key():
+    k = os.environ.get("NAN_API_KEY", "").strip()
+    if not k and os.path.exists(KEY_FILE):
+        k = open(KEY_FILE).read().strip()
+    if not k:
+        die(f"falta la API key: exporta NAN_API_KEY o escríbela en {KEY_FILE} (chmod 600)")
+    return k
+
+
+# Cloudflare devuelve 403 al User-Agent por defecto de urllib; curl y Node pasan.
+def HEADERS():
+    return {"Authorization": f"Bearer {key()}", "User-Agent": "nan-cli/0.1 (+orca-nan)"}
+
+
+def get(base, path, timeout=20):
+    req = urllib.request.Request(base + path, headers=HEADERS())
+    try:
+        with urllib.request.urlopen(req, timeout=timeout) as r:
+            return json.load(r)
+    except urllib.error.HTTPError as e:
+        die(f"{path} → HTTP {e.code}")
+    except urllib.error.URLError as e:
+        die(f"{path} → {e.reason}")
+
+
+def fmt(n):
+    n = n or 0
+    if n >= 1e9:
+        return f"{n / 1e9:.2f}B"
+    if n >= 1e6:
+        return f"{n / 1e6:.1f}M"
+    if n >= 1e3:
+        return f"{n / 1e3:.0f}K"
+    return str(int(n))
+
+
+def bar(p, width=20):
+    filled = int(round(p * width))
+    return "█" * filled + "░" * (width - filled)
+
+
+def days_left(iso_or_epoch):
+    if isinstance(iso_or_epoch, (int, float)):
+        end = datetime.fromtimestamp(iso_or_epoch, tz=timezone.utc)
+    else:
+        end = datetime.fromisoformat(iso_or_epoch.replace("Z", "+00:00"))
+    return max(0, (end - datetime.now(timezone.utc)).days)
+
+
+# ---------------------------------------------------------------- comandos
+
+def cmd_quota(as_json):
+    q = get(CLOUD, "/api/usage/quota")
+    if as_json:
+        return q
+    rows = sorted(q["models"], key=lambda m: -(m["tokensUsed"] / m["cap"] if m["cap"] else 0))
+    print(f"periodo desde {q.get('periodStart', '?')}")
+    for m in rows:
+        p = m["tokensUsed"] / m["cap"] if m["cap"] else 0
+        win = f"  ventana {m['windowHours']}h: {fmt(m['fullWindowTokens'])}" if m.get("windowHours") else ""
+        reset = f"reset {days_left(m['periodEnd'])}d" if m.get("periodEnd") else ""
+        flag = " ⚠" if p >= 0.8 else ""
+        print(f"  {m['model']:<20} {bar(p)} {p * 100:5.1f}%  {fmt(m['tokensUsed']):>7} / {fmt(m['cap']):<6} {reset}{win}{flag}")
+
+
+def cmd_usage(as_json):
+    u = get(CLOUD, "/api/metrics/usage")
+    if as_json:
+        return u
+    for label, k in (("24h", "last24h"), ("mes", "monthToDate"), ("30d", "last30d"), ("total", "allTime")):
+        b = u.get(k) or {}
+        print(f"{label:<6} {fmt(b.get('totalTokens')):>8}")
+        for m in sorted(b.get("byModel", []), key=lambda m: -(m["inputTokens"] + m["outputTokens"]))[:6]:
+            print(f"         {m['model']:<24} in {fmt(m['inputTokens']):>7}  out {fmt(m['outputTokens']):>6}")
+    ts = u.get("timeSeries") or []
+    if ts:
+        by_day = {}
+        for r in ts[-14:]:
+            by_day[r["date"]] = by_day.get(r["date"], 0) + r["inputTokens"] + r["outputTokens"]
+        print("últimos días:", "  ".join(f"{d[5:]} {fmt(v)}" for d, v in sorted(by_day.items())[-7:]))
+
+
+def cmd_models(as_json):
+    live = [m["id"] for m in get(INFERENCE, "/models")["data"]]
+    quota = {m["model"]: m for m in get(CLOUD, "/api/usage/quota")["models"]}
+    modes = {m["name"]: m.get("mode", "") for m in get(CLOUD, "/api/agents/models").get("models", [])}
+    if as_json:
+        return {"models": live, "quota": quota, "modes": modes}
+    print(f"{len(live)} modelos servidos ahora en {INFERENCE}")
+    for mid in sorted(live):
+        n = MODEL_NOTES.get(mid, {})
+        q = quota.get(mid)
+        cuota = f"{fmt(q['tokensUsed'])}/{fmt(q['cap'])}" if q else "—"
+        ctx = f"{n['ctx'] // 1000}K ctx" if n.get("ctx") else ""
+        tag = "" if mid in MODEL_NOTES else "  (no documentado en la ficha local)"
+        print(f"  {mid:<20} {cuota:<14} {ctx:<9} {','.join(n.get('input', []))!s:<17} {n.get('note', '')}{tag}")
+    print("cuotas/ctx: nan.builders/docs/models manda si esto discrepa.")
+
+
+def cmd_billing(as_json):
+    b = get(CLOUD, "/api/billing")
+    me = get(CLOUD, "/api/auth/me")
+    if as_json:
+        return {"billing": b, "me": me}
+    s = b.get("subscription") or {}
+    start = datetime.fromtimestamp(s.get("currentPeriodStart", 0), tz=timezone.utc).date()
+    end = datetime.fromtimestamp(s.get("currentPeriodEnd", 0), tz=timezone.utc).date()
+    print(f"{me.get('handle')} · tier {me.get('tier')} · región {me.get('region')} · namespace {me.get('namespace')}")
+    print(f"suscripción {s.get('status')} · {str(s.get('currency', '')).upper()} · premium(glm5.2): {'sí' if s.get('premium') else 'no'}")
+    print(f"periodo {start} → {end} ({days_left(s.get('currentPeriodEnd', 0))} días)")
+    if s.get("cancelAtPeriodEnd"):
+        print("⚠ cancelación programada al final del periodo")
+    print("features:", ", ".join(k for k, v in (me.get("features") or {}).items() if v) or "—")
+
+
+def ping_one(model):
+    body = {"model": model, "messages": [{"role": "user", "content": "ping"}], "max_tokens": 8, "stream": True}
+    req = urllib.request.Request(
+        INFERENCE + "/chat/completions",
+        data=json.dumps(body).encode(),
+        headers={**HEADERS(), "Content-Type": "application/json"},
+    )
+    t0 = time.time()
+    try:
+        with urllib.request.urlopen(req, timeout=60) as r:
+            served = None
+            for raw in r:
+                line = raw.decode(errors="ignore").strip()
+                if not line.startswith("data:") or line.endswith("[DONE]"):
+                    continue
+                try:
+                    served = json.loads(line[5:]).get("model")
+                except json.JSONDecodeError:
+                    continue
+                if served:
+                    break
+            ttft = time.time() - t0
+            return {"model": model, "ok": True, "ttft_s": round(ttft, 2), "served": served}
+    except urllib.error.HTTPError as e:
+        return {"model": model, "ok": False, "ttft_s": round(time.time() - t0, 2), "error": f"HTTP {e.code}"}
+    except Exception as e:  # timeout, reset…
+        return {"model": model, "ok": False, "ttft_s": round(time.time() - t0, 2), "error": str(e)[:60]}
+
+
+def cmd_ping(as_json, args):
+    models = args or [m["id"] for m in get(INFERENCE, "/models")["data"] if m["id"] not in CHAT_EXCLUDE]
+    out = []
+    for m in models:
+        r = ping_one(m)
+        out.append(r)
+        if not as_json:
+            if r["ok"]:
+                swap = "" if r["served"] in (None, m) else f"  ⚠ sirvió {r['served']} (fallback silencioso)"
+                print(f"  {m:<20} ok   {r['ttft_s']:>5.2f}s primer token{swap}")
+            else:
+                print(f"  {m:<20} FAIL {r['ttft_s']:>5.2f}s  {r['error']}")
+    return out if as_json else None
+
+
+def cmd_status(as_json):
+    q = get(CLOUD, "/api/usage/quota")
+    used = [m for m in q["models"] if m["tokensUsed"] > 0]
+    if as_json:
+        return q
+    parts = []
+    for m in sorted(used, key=lambda m: -(m["tokensUsed"] / m["cap"] if m["cap"] else 0)):
+        p = m["tokensUsed"] / m["cap"] * 100 if m["cap"] else 0
+        short = m["model"].replace("deepseek-v4-flash", "ds4f").replace("-flash", "f")
+        parts.append(f"{short} {p:.0f}%{'⚠' if p >= 80 else ''}")
+    reset = next((m["periodEnd"] for m in q["models"] if m.get("periodEnd") and not m.get("windowHours")), None)
+    tail = f" | {days_left(reset)}d" if reset else ""
+    print("NaN " + (" · ".join(parts) if parts else "0%") + tail)
+
+
+def chat_models():
+    live = [m["id"] for m in get(INFERENCE, "/models")["data"]]
+    return [m for m in sorted(live) if m not in CHAT_EXCLUDE]
+
+
+def cmd_config(as_json, args):
+    target = (args or ["help"])[0]
+    k = key()
+    masked = k[:6] + "…" + k[-4:]
+    if target == "env":
+        print(f'export OPENAI_BASE_URL="{INFERENCE}"')
+        print(f'export OPENAI_API_KEY="$(cat {KEY_FILE})"   # {masked}')
+        print("# Cline / Continue / Aider / cualquier SDK OpenAI-compatible")
+        return
+    if target == "cursor":
+        print(f"Cursor → Settings → Models → OpenAI API:\n  Base URL: {INFERENCE}\n  API Key:  {masked}  (cat {KEY_FILE})")
+        print("  Modelos a añadir a mano:", ", ".join(chat_models()))
+        return
+    models = chat_models()
+    if target == "opencode":
+        cfg = {
+            "$schema": "https://opencode.ai/config.json",
+            "provider": {"nan": {
+                "npm": "@ai-sdk/openai-compatible", "name": "NaN",
+                "options": {"baseURL": INFERENCE, "apiKey": "{env:NAN_API_KEY}"},
+                "models": {m: {
+                    "name": MODEL_NOTES.get(m, {}).get("name", m),
+                    "contextWindow": MODEL_NOTES.get(m, {}).get("ctx") or 131072,
+                    "modalities": {"input": MODEL_NOTES.get(m, {}).get("input", ["text"]), "output": ["text"]},
+                } for m in models},
+            }},
+            "compaction": {"auto": True, "prune": True, "reserved": 50000},
+        }
+        print("# ~/.config/opencode/opencode.json — exporta NAN_API_KEY o sustituye {env:NAN_API_KEY}")
+        print(json.dumps(cfg, indent=2, ensure_ascii=False))
+        return
+    if target == "pi":
+        models_json = {"providers": {"nan": {
+            "baseUrl": INFERENCE, "apiKey": k, "api": "openai-completions",
+            "models": [{
+                "id": m, "name": MODEL_NOTES.get(m, {}).get("name", m), "reasoning": True,
+                "input": MODEL_NOTES.get(m, {}).get("input", ["text"]),
+                "contextWindow": MODEL_NOTES.get(m, {}).get("ctx") or 131072, "maxTokens": 16384,
+            } for m in models],
+        }}}
+        print("# ~/.pi/agent/models.json  (lleva la key en claro: chmod 600)")
+        print(json.dumps(models_json, indent=2, ensure_ascii=False))
+        print("\n# ~/.pi/agent/settings.json")
+        print(json.dumps({"defaultProvider": "nan", "defaultModel": models[0]}, indent=2))
+        return
+    if target == "zed":
+        cfg = {"language_models": {"openai": {"api_url": INFERENCE, "available_models": [
+            {"name": m, "display_name": f"NaN {m}", "max_tokens": MODEL_NOTES.get(m, {}).get("ctx") or 131072} for m in models]}}}
+        print("# ~/.config/zed/settings.json (la key va en el asistente de Zed, no aquí)")
+        print(json.dumps(cfg, indent=2))
+        return
+    print("destinos: env | opencode | pi | cursor | zed\n(Claude Code no: NaN es OpenAI-compatible, no habla el protocolo Anthropic)")
+
+
+def main(argv):
+    as_json = "--json" in argv
+    argv = [a for a in argv if a != "--json"]
+    cmd, args = (argv[0] if argv else "quota"), argv[1:]
+    table = {
+        "quota": lambda: cmd_quota(as_json), "usage": lambda: cmd_usage(as_json),
+        "models": lambda: cmd_models(as_json), "billing": lambda: cmd_billing(as_json),
+        "ping": lambda: cmd_ping(as_json, args), "status": lambda: cmd_status(as_json),
+        "config": lambda: cmd_config(as_json, args),
+    }
+    if cmd in ("-h", "--help", "help") or cmd not in table:
+        print(__doc__.strip())
+        return 0 if cmd in ("-h", "--help", "help") else 2
+    result = table[cmd]()
+    if as_json and result is not None:
+        print(json.dumps(result, indent=2, ensure_ascii=False))
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main(sys.argv[1:]))

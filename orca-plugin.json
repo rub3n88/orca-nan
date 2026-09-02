@@ -1,0 +1,74 @@
+{
+  "manifestVersion": 1,
+  "id": "nan-usage",
+  "publisher": "dinacode",
+  "name": "NaN Usage",
+  "version": "0.1.0",
+  "description": "Cuotas, consumo y salud de tu suscripción de NaN (nan.builders) dentro de Orca: comandos en la paleta, aviso al 80 % cuando un agente termina y un panel que lanza `nan` en tu terminal.",
+  "engines": {
+    "orca": ">=1.4.0"
+  },
+  "pluginApi": 1,
+  "main": "main.mjs",
+  "contributes": {
+    "panels": [
+      {
+        "id": "nan",
+        "title": "NaN",
+        "icon": "gauge",
+        "entry": "panel.html"
+      }
+    ],
+    "commands": [
+      {
+        "id": "nan-quota",
+        "title": "NaN: cuota por modelo",
+        "context": "global"
+      },
+      {
+        "id": "nan-usage",
+        "title": "NaN: consumo 24h / mes",
+        "context": "global"
+      },
+      {
+        "id": "nan-models",
+        "title": "NaN: modelos disponibles",
+        "context": "global"
+      },
+      {
+        "id": "nan-billing",
+        "title": "NaN: suscripción",
+        "context": "global"
+      },
+      {
+        "id": "nan-check",
+        "title": "NaN: comprobar umbral 80 %",
+        "context": "global"
+      }
+    ],
+    "events": [
+      {
+        "on": "agent.status.changed"
+      }
+    ],
+    "keybindings": [
+      {
+        "command": "nan-quota",
+        "key": "Mod+Alt+N",
+        "when": "global"
+      }
+    ]
+  },
+  "capabilities": [
+    {
+      "kind": "notifications:show"
+    },
+    {
+      "kind": "storage"
+    },
+    {
+      "kind": "events:subscribe"
+    }
+  ],
+  "repository": "https://github.com/rub3n88/orca-nan"
+}
