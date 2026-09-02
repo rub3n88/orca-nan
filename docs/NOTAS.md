@@ -33,7 +33,11 @@ Fuente: `stablyai/orca` en GitHub (`src/shared/plugins/*`, `src/main/plugins/*`,
   allowlist (`PATH`, `HOME`, `LANG`, `TZ`, `TMPDIR`…): no hereda variables. Se arranca al primer
   comando/evento y muere a los 5 min de idle (`PLUGIN_WORKER_IDLE_REAP_MS`). Tiene `fetch` porque
   nadie lo bloquea, no porque esté permitido.
-- Comandos: aparecen en ⌘J con prefijo `plugin:`; sin argumentos. `keybindings` funcionan.
+- Comandos: aparecen en ⌘J con prefijo `plugin:`; sin argumentos. `keybindings` funcionan **solo con
+  el foco en contexto `app`** (`use-global-keybindings.ts`: en terminal/editor/browser mandan sus
+  propios handlers). Si el usuario está en una terminal, el atajo no hace nada: ⌘J sí.
+- Las capacidades que llama el panel (`workspace:read`, `terminal:send`) hay que declararlas
+  aunque el worker no las use; el error llega al panel como `plugin does not have the … capability`.
 - Instalación: marketplace git (`orca-marketplace.json` en la raíz de un repo; entradas con
   `source.kind: git` + `ref`) o carpeta de desarrollo (Settings → Plugins → Development). `.git` en
   la raíz queda fuera del hash de contenido; límite 50 MB.

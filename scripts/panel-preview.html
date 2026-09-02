@@ -1,0 +1,30 @@
+<!doctype html>
+<!-- Previsualiza panel.html fuera de Orca: simula el bridge del host
+     (postMessage) con datos falsos. Ábrelo en un navegador. -->
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <style>
+      body { margin: 0; background: #222; display: grid; place-items: center; height: 100vh; }
+      iframe { width: 340px; height: 640px; border: 1px solid #444; background: #0d0d10; }
+    </style>
+  </head>
+  <body>
+    <iframe id="f" src="../panel.html"></iframe>
+    <script>
+      window.addEventListener('message', function (event) {
+        var d = event.data
+        if (!d || d.type !== 'orca-panel-action') return
+        var reply = { type: 'orca-panel-action-result', requestId: d.requestId, ok: true }
+        if (d.action === 'workspace.readContext') {
+          reply.value = { displayName: 'orca-nan', branch: 'main', terminals: [{ id: 'term_a1' }, { id: 'term_b2' }] }
+        } else if (d.action === 'terminal.sendText') {
+          reply.value = { accepted: true }
+        } else {
+          reply = { type: 'orca-panel-action-result', requestId: d.requestId, ok: false, errorCode: 'forbidden', error: 'no simulado' }
+        }
+        document.getElementById('f').contentWindow.postMessage(reply, '*')
+      })
+    </script>
+  </body>
+</html>

@@ -1,98 +1,163 @@
 <!doctype html>
-<html>
+<html lang="es">
   <head>
     <meta charset="utf-8" />
     <style>
-      /* El host inyecta los tokens de diseño de Orca como custom properties. */
+      /* Orca inyecta sus tokens de diseño como custom properties; los usamos con
+         fallback para que el panel se vea igual de bien fuera del host. */
+      :root {
+        --fg: var(--foreground, #e6e6ea);
+        --bg: var(--background, #0d0d10);
+        --muted: var(--muted-foreground, #8b8b95);
+        --line: var(--border, #2a2a31);
+        --card: var(--secondary, #17171c);
+        --accent: var(--primary, #8b7cf6);
+        --ok: #4ade80;
+        --warn: #fbbf24;
+        --err: #f87171;
+        --radius: 8px;
+      }
+      * { box-sizing: border-box; }
       body {
         margin: 0;
-        padding: 12px;
-        font-family: system-ui, sans-serif;
-        font-size: 13px;
-        color: var(--foreground, #ddd);
-        background: var(--background, transparent);
+        padding: 12px 12px 16px;
+        font: 12.5px/1.45 system-ui, -apple-system, "Segoe UI", sans-serif;
+        color: var(--fg);
+        background: var(--bg);
+        -webkit-font-smoothing: antialiased;
       }
-      h1 { font-size: 14px; margin: 0 0 4px; }
-      p { margin: 0 0 10px; color: var(--muted-foreground, #999); }
-      select {
-        width: 100%;
-        margin: 6px 0 10px;
-        padding: 5px;
-        border: 1px solid var(--border, #555);
-        border-radius: 6px;
-        background: var(--secondary, #2a2a2a);
-        color: var(--foreground, #ddd);
-        font: inherit;
+      code, .mono { font-family: ui-monospace, "SF Mono", Menlo, monospace; font-size: 11.5px; }
+
+      header { display: flex; align-items: baseline; gap: 8px; margin-bottom: 12px; }
+      header h1 { font-size: 15px; font-weight: 650; margin: 0; letter-spacing: -0.01em; }
+      header .sub { color: var(--muted); font-size: 11.5px; }
+      header .dot {
+        width: 7px; height: 7px; border-radius: 50%; background: var(--muted);
+        margin-left: auto; align-self: center; transition: background .2s;
+      }
+      header .dot.ok { background: var(--ok); }
+      header .dot.err { background: var(--err); }
+
+      /* Selector de terminal: fila compacta con refresco. */
+      .target {
+        display: grid; grid-template-columns: 1fr auto; gap: 6px; align-items: center;
+        padding: 8px; border: 1px solid var(--line); border-radius: var(--radius);
+        background: var(--card); margin-bottom: 14px;
+      }
+      .target label { grid-column: 1 / -1; color: var(--muted); font-size: 10.5px; text-transform: uppercase; letter-spacing: .06em; }
+      select, .icon-btn {
+        height: 28px; border: 1px solid var(--line); border-radius: 6px;
+        background: var(--bg); color: var(--fg); font: inherit; padding: 0 8px;
+      }
+      select { width: 100%; min-width: 0; }
+      .icon-btn { width: 32px; padding: 0; cursor: pointer; display: grid; place-items: center; }
+      .icon-btn:hover, button.action:hover { border-color: var(--accent); }
+      .target .empty { grid-column: 1 / -1; color: var(--muted); font-size: 11.5px; }
+
+      section { margin-bottom: 14px; }
+      section h2 {
+        margin: 0 0 6px; font-size: 10.5px; font-weight: 600; color: var(--muted);
+        text-transform: uppercase; letter-spacing: .08em;
       }
       .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
-      button {
-        padding: 7px 8px;
-        border: 1px solid var(--border, #555);
-        border-radius: 6px;
-        background: var(--secondary, #2a2a2a);
-        color: var(--foreground, #ddd);
-        cursor: pointer;
-        font: inherit;
-        text-align: left;
+      button.action {
+        display: flex; flex-direction: column; align-items: flex-start; gap: 1px;
+        padding: 7px 9px; border: 1px solid var(--line); border-radius: var(--radius);
+        background: var(--card); color: var(--fg); font: inherit; text-align: left; cursor: pointer;
+        transition: border-color .15s, transform .05s;
       }
-      button:hover { border-color: var(--primary, #8ab4f8); }
-      button.wide { grid-column: 1 / -1; }
-      .status { margin-top: 10px; min-height: 1.4em; color: var(--muted-foreground, #999); white-space: pre-wrap; }
-      code { font-family: ui-monospace, monospace; font-size: 12px; }
-      hr { border: 0; border-top: 1px solid var(--border, #444); margin: 12px 0; }
+      button.action:active { transform: translateY(1px); }
+      button.action:disabled { opacity: .45; cursor: not-allowed; }
+      button.action .t { font-weight: 600; font-size: 12px; }
+      button.action .d { color: var(--muted); font-size: 10.5px; }
+      button.action.wide { grid-column: 1 / -1; }
+
+      .chips { display: flex; flex-wrap: wrap; gap: 6px; }
+      .chips button.action { flex: 1 1 auto; padding: 5px 9px; }
+      .chips button.action .t { font-weight: 500; }
+
+      .status {
+        margin-top: 4px; min-height: 18px; padding: 6px 8px; border-radius: 6px;
+        background: var(--card); border: 1px solid transparent;
+        color: var(--muted); font-size: 11.5px; white-space: pre-wrap; word-break: break-word;
+      }
+      .status.ok { color: var(--fg); border-color: var(--line); }
+      .status.err { color: var(--err); border-color: color-mix(in srgb, var(--err) 40%, transparent); }
+
+      footer { margin-top: 14px; padding-top: 10px; border-top: 1px solid var(--line); color: var(--muted); font-size: 11px; }
+      footer p { margin: 0 0 5px; }
+      kbd {
+        font: 10.5px ui-monospace, Menlo, monospace; padding: 1px 5px; border-radius: 4px;
+        border: 1px solid var(--line); background: var(--card); color: var(--fg);
+      }
     </style>
   </head>
   <body>
-    <h1>NaN</h1>
-    <p>
-      El panel no puede hacer red (CSP del host), así que lanza <code>nan …</code> en la
-      terminal que elijas. Los avisos de cuota van por el worker (⌘J → «NaN: …»).
-    </p>
+    <header>
+      <h1>NaN</h1>
+      <span class="sub">nan.builders · suscripción</span>
+      <span class="dot" id="dot" title="estado del bridge"></span>
+    </header>
 
-    <button id="refresh" class="wide">↻ Terminales del worktree activo</button>
-    <select id="terms" hidden></select>
-
-    <div class="grid" id="actions" hidden>
-      <button data-cmd="nan quota">cuota por modelo</button>
-      <button data-cmd="nan usage">consumo 24h / mes</button>
-      <button data-cmd="nan models">modelos disponibles</button>
-      <button data-cmd="nan billing">suscripción</button>
-      <button data-cmd="nan ping">ping (latencia y modelo real)</button>
-      <button data-cmd="nan status">status (una línea)</button>
-      <button data-cmd="nan config env" class="wide">config: variables de entorno</button>
-      <button data-cmd="nan config opencode" class="wide">config: opencode.json</button>
-      <button data-cmd="nan config pi" class="wide">config: Pi (models + settings)</button>
+    <div class="target">
+      <label>Ejecutar en</label>
+      <select id="terms" hidden></select>
+      <button class="icon-btn" id="refresh" title="Releer terminales del worktree activo" hidden>↻</button>
+      <div class="empty" id="empty">Buscando terminales del worktree activo…</div>
     </div>
 
-    <p class="status" id="status"></p>
+    <section>
+      <h2>Estado</h2>
+      <div class="grid">
+        <button class="action" data-cmd="nan quota"><span class="t">Cuota</span><span class="d">por modelo, con reset</span></button>
+        <button class="action" data-cmd="nan usage"><span class="t">Consumo</span><span class="d">24h · mes · 30d</span></button>
+        <button class="action" data-cmd="nan models"><span class="t">Modelos</span><span class="d">servidos ahora + cuota</span></button>
+        <button class="action" data-cmd="nan billing"><span class="t">Suscripción</span><span class="d">plan, periodo, renovación</span></button>
+      </div>
+    </section>
 
-    <hr />
-    <p>
-      Comandos del worker (Cmd+J): <code>NaN: cuota por modelo</code> (⌘⌥N),
-      <code>consumo</code>, <code>suscripción</code>, <code>comprobar umbral 80 %</code>.
-      Además avisa solo cuando un agente termina y algún modelo pasa del 80 %.
-    </p>
+    <section>
+      <h2>Diagnóstico</h2>
+      <div class="grid">
+        <button class="action" data-cmd="nan ping"><span class="t">Ping</span><span class="d">latencia y modelo real</span></button>
+        <button class="action" data-cmd="nan status"><span class="t">Status</span><span class="d">una línea para el prompt</span></button>
+      </div>
+    </section>
+
+    <section>
+      <h2>Config para pegar</h2>
+      <div class="chips">
+        <button class="action" data-cmd="nan config env"><span class="t">env</span></button>
+        <button class="action" data-cmd="nan config opencode"><span class="t">opencode</span></button>
+        <button class="action" data-cmd="nan config pi"><span class="t">pi</span></button>
+        <button class="action" data-cmd="nan config cursor"><span class="t">cursor</span></button>
+        <button class="action" data-cmd="nan config zed"><span class="t">zed</span></button>
+      </div>
+    </section>
+
+    <div class="status" id="status"></div>
+
+    <footer>
+      <p>Cada botón escribe <code>nan …</code> en la terminal elegida y pulsa Enter. El panel no puede hacer red por sí mismo (CSP de Orca).</p>
+      <p>Avisos y comandos del worker: <kbd>⌘J</kbd> → «NaN: …», o <kbd>⌘⌥N</kbd> para la cuota (con el foco fuera de una terminal). Al terminar un agente avisa si algún modelo pasa del 80 %.</p>
+    </footer>
 
     <script>
       'use strict'
       var seq = 0
       var pending = {}
-      var statusEl = document.getElementById('status')
-      var termsEl = document.getElementById('terms')
-      var actionsEl = document.getElementById('actions')
+      var $ = function (id) { return document.getElementById(id) }
+      var termsEl = $('terms'), emptyEl = $('empty'), statusEl = $('status'), dotEl = $('dot'), refreshEl = $('refresh')
+      var actionButtons = Array.prototype.slice.call(document.querySelectorAll('button.action'))
 
       function call(action, params) {
         return new Promise(function (resolve) {
           var requestId = 'req-' + ++seq
           pending[requestId] = resolve
           // Origen opaco: '*' es el único targetOrigin posible; el host verifica la ventana.
-          window.parent.postMessage(
-            { type: 'orca-panel-action', requestId: requestId, action: action, params: params },
-            '*'
-          )
+          window.parent.postMessage({ type: 'orca-panel-action', requestId: requestId, action: action, params: params }, '*')
         })
       }
-
       window.addEventListener('message', function (event) {
         var data = event.data
         if (!data || data.type !== 'orca-panel-action-result') return
@@ -102,48 +167,67 @@
         resolve(data)
       })
 
+      function setStatus(text, kind) {
+        statusEl.textContent = text || ''
+        statusEl.className = 'status' + (kind ? ' ' + kind : '')
+      }
+      function setActionsEnabled(enabled) {
+        actionButtons.forEach(function (b) { b.disabled = !enabled })
+      }
+
       function refresh() {
         call('workspace.readContext').then(function (result) {
           if (!result.ok) {
-            statusEl.textContent = 'sin contexto: ' + (result.error || result.errorCode)
+            dotEl.className = 'dot err'
+            termsEl.hidden = true; refreshEl.hidden = false
+            emptyEl.hidden = false
+            emptyEl.textContent = 'Sin acceso al worktree: ' + (result.error || result.errorCode)
+            setActionsEnabled(false)
             return
           }
-          if (!result.value || result.value.terminals.length === 0) {
-            statusEl.textContent = 'no hay worktree enfocado o no tiene terminales abiertas'
-            termsEl.hidden = true
-            actionsEl.hidden = true
+          dotEl.className = 'dot ok'
+          var ctx = result.value
+          if (!ctx || ctx.terminals.length === 0) {
+            termsEl.hidden = true; refreshEl.hidden = false
+            emptyEl.hidden = false
+            emptyEl.textContent = ctx
+              ? ctx.displayName + ' no tiene terminales abiertas. Abre una y pulsa ↻.'
+              : 'No hay worktree enfocado. Selecciona uno y pulsa ↻.'
+            setActionsEnabled(false)
             return
           }
+          var previous = termsEl.value
           termsEl.innerHTML = ''
-          result.value.terminals.forEach(function (terminal, i) {
+          ctx.terminals.forEach(function (terminal, i) {
             var option = document.createElement('option')
             option.value = terminal.id
-            option.textContent = 'terminal ' + (i + 1) + ' · ' + terminal.id
+            option.textContent = ctx.displayName + ' · terminal ' + (i + 1)
             termsEl.appendChild(option)
           })
-          termsEl.hidden = false
-          actionsEl.hidden = false
-          statusEl.textContent = result.value.displayName + ' @ ' + result.value.branch
+          if (previous && ctx.terminals.some(function (t) { return t.id === previous })) termsEl.value = previous
+          termsEl.hidden = false; refreshEl.hidden = false; emptyEl.hidden = true
+          setActionsEnabled(true)
+          setStatus(ctx.displayName + ' @ ' + ctx.branch + ' · ' + ctx.terminals.length + (ctx.terminals.length === 1 ? ' terminal' : ' terminales'), 'ok')
         })
       }
 
-      document.getElementById('refresh').addEventListener('click', refresh)
-
-      actionsEl.addEventListener('click', function (event) {
-        var button = event.target.closest('button[data-cmd]')
-        if (!button) return
-        // Solo escribe la orden y pulsa Enter en la terminal elegida — la ejecuta
-        // el shell del usuario, con su PATH (donde tiene que estar `nan`).
-        call('terminal.sendText', { terminalId: termsEl.value, text: button.dataset.cmd, enter: true }).then(
-          function (result) {
-            statusEl.textContent = result.ok
-              ? 'enviado: ' + button.dataset.cmd
-              : 'fallo: ' + (result.error || result.errorCode)
-          }
-        )
+      refreshEl.addEventListener('click', refresh)
+      document.addEventListener('click', function (event) {
+        var button = event.target.closest('button.action')
+        if (!button || button.disabled) return
+        var cmd = button.dataset.cmd
+        // Solo escribe la orden y pulsa Enter: la ejecuta tu shell, con tu PATH.
+        call('terminal.sendText', { terminalId: termsEl.value, text: cmd, enter: true }).then(function (result) {
+          if (result.ok) setStatus('▶ ' + cmd, 'ok')
+          else setStatus('No se pudo enviar: ' + (result.error || result.errorCode), 'err')
+        })
       })
 
+      setActionsEnabled(false)
       refresh()
+      // El worktree enfocado cambia sin que el panel se entere: releer al volver.
+      window.addEventListener('focus', refresh)
+      document.addEventListener('visibilitychange', function () { if (!document.hidden) refresh() })
     </script>
   </body>
 </html>

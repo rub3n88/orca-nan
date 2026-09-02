@@ -3,7 +3,7 @@
   "id": "nan-usage",
   "publisher": "dinacode",
   "name": "NaN Usage",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Cuotas, consumo y salud de tu suscripción de NaN (nan.builders) dentro de Orca: comandos en la paleta, aviso al 80 % cuando un agente termina y un panel que lanza `nan` en tu terminal.",
   "engines": {
     "orca": ">=1.4.0"
@@ -60,6 +60,12 @@
     ]
   },
   "capabilities": [
+    {
+      "kind": "workspace:read"
+    },
+    {
+      "kind": "terminal:send"
+    },
     {
       "kind": "notifications:show"
     },

@@ -66,7 +66,9 @@ error). `config` genera los snippets con los modelos que hay *ahora*, no con una
 
 **Como plugin de desarrollo** — Settings → Plugins → Development → añadir la carpeta del repo.
 
-En ambos casos Orca pide consentimiento para `notifications:show`, `storage` y `events:subscribe`.
+En ambos casos Orca pide consentimiento para `workspace:read`, `terminal:send`, `notifications:show`,
+`storage` y `events:subscribe`. El atajo ⌘⌥N solo dispara con el foco fuera de una terminal
+(dentro de una terminal Orca deja las teclas al PTY; usa ⌘J).
 El worker lee la key de `~/.config/nan/api-key` (su entorno está saneado y no hereda variables).
 
 ## Cómo funciona (y por qué así)
@@ -86,6 +88,7 @@ ELECTRON_RUN_AS_NODE=1 /Applications/Orca.app/Contents/MacOS/Orca scripts/test-w
 ```
 
 Ejecuta los comandos del worker con el Node del propio Orca contra la API real, simulando el
-objeto `orca` que inyecta el host.
+objeto `orca` que inyecta el host. `scripts/panel-preview.html` previsualiza el panel en un navegador
+normal simulando el bridge del host.
 
 MIT · [Rubén León](https://github.com/rub3n88) · hecho para la comunidad de NaN
