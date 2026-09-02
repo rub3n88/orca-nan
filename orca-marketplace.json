@@ -3,7 +3,7 @@
   "owner": "rub3n88",
   "plugins": [
     {
-      "id": "dinacode.nan-usage",
+      "id": "rub3n88.nan-usage",
       "source": { "kind": "git", "url": "https://github.com/rub3n88/orca-nan.git", "ref": "main" },
       "description": "Cuotas, consumo y salud de tu suscripción de NaN (nan.builders) dentro de Orca.",
       "categories": ["tools", "usage"]
