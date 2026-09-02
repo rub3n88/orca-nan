@@ -55,7 +55,7 @@ error). `config` genera los snippets con los modelos que hay *ahora*, no con una
 
 | Dónde | Qué |
 |---|---|
-| ⌘J → «NaN: …» | **cuota por modelo** (⌘⌥N) · **consumo 24h / mes** · **modelos disponibles** · **suscripción** · **comprobar umbral 80 %** — como notificación de escritorio |
+| ⌘J → «NaN: …» | **cuota por modelo** (⌘⌥U) · **consumo 24h / mes** · **modelos disponibles** · **suscripción** · **comprobar umbral 80 %** — como notificación de escritorio |
 | Automático | Cuando un agente pasa a `done`, mira la cuota (máx. 1 vez / 10 min) y avisa si algún modelo supera el 80 %. Un aviso por modelo y periodo |
 | Panel «NaN» (barra derecha) | Botones que escriben `nan quota`, `nan ping`, `nan config …` en la terminal que elijas |
 
@@ -67,8 +67,9 @@ error). `config` genera los snippets con los modelos que hay *ahora*, no con una
 **Como plugin de desarrollo** — Settings → Plugins → Development → añadir la carpeta del repo.
 
 En ambos casos Orca pide consentimiento para `workspace:read`, `terminal:send`, `notifications:show`,
-`storage` y `events:subscribe`. El atajo ⌘⌥N solo dispara con el foco fuera de una terminal
-(dentro de una terminal Orca deja las teclas al PTY; usa ⌘J).
+`storage` y `events:subscribe`. El atajo ⌘⌥U solo dispara con el foco fuera de una terminal
+(dentro de una terminal Orca deja las teclas al PTY; usa ⌘J). Se puede cambiar en
+Settings → Shortcuts, grupo «Plugins».
 El worker lee la key de `~/.config/nan/api-key` (su entorno está saneado y no hereda variables).
 
 ## Cómo funciona (y por qué así)

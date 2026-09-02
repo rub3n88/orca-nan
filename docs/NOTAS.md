@@ -127,4 +127,4 @@ tiempo de reset— **no se puede hacer con plugins v0**. Se puede como proveedor
 - Script: todos los subcomandos contra la API real.
 - Worker: `scripts/test-worker.mjs` con el Node de Orca y `env -i` (entorno saneado como el real);
   los cinco comandos y el evento `done` responden.
-- Plugin instalado en Orca como plugin de desarrollo; ⌘⌥N y el panel funcionan.
+- Plugin instalado en Orca como plugin de desarrollo; ⌘⌥U y el panel funcionan.
