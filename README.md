@@ -59,18 +59,33 @@ error). `config` genera los snippets con los modelos que hay *ahora*, no con una
 | Automático | Cuando un agente pasa a `done`, mira la cuota (máx. 1 vez / 10 min) y avisa si algún modelo supera el 80 %. Un aviso por modelo y periodo |
 | Panel «NaN» (barra derecha) | Botones que escriben `nan quota`, `nan ping`, `nan config …` en la terminal que elijas |
 
-### Instalar
+### Instalar (y que se actualice solo)
 
-**Desde este repo como marketplace** — Settings → Plugins → Marketplaces → añadir
-`https://github.com/rub3n88/orca-nan.git` → instalar *NaN Usage*.
+1. Settings → **Plugins (Experimental)** → activa *Plugin system*.
+2. En **Marketplaces** → *Add* → pega `https://github.com/rub3n88/orca-nan.git`. Este repo es a la vez
+   plugin y marketplace (lleva su propio `orca-marketplace.json`).
+3. Busca **NaN Usage** en la lista, *Install*, y acepta las capacidades que pide: `workspace:read`,
+   `terminal:send`, `notifications:show`, `storage`, `events:subscribe`.
+4. Deja la key en `~/.config/nan/api-key` (`chmod 600`). El worker la lee de ahí porque su entorno
+   está saneado y no hereda variables.
 
-**Como plugin de desarrollo** — Settings → Plugins → Development → añadir la carpeta del repo.
+**Actualizar:** cuando haya versión nueva, en Settings → Plugins te aparecerá **Update** junto al
+plugin (Orca refresca el marketplace y compara). No hace falta desinstalar; solo vuelve a pedir
+consentimiento si cambian las capacidades. *Roll back* deshace la última actualización.
 
-En ambos casos Orca pide consentimiento para `workspace:read`, `terminal:send`, `notifications:show`,
-`storage` y `events:subscribe`. El atajo ⌘⌥U solo dispara con el foco fuera de una terminal
-(dentro de una terminal Orca deja las teclas al PTY; usa ⌘J). Se puede cambiar en
-Settings → Shortcuts, grupo «Plugins».
-El worker lee la key de `~/.config/nan/api-key` (su entorno está saneado y no hereda variables).
+**Para desarrollarlo:** Settings → Plugins → *Development* → añade la carpeta del repo. Orca vigila
+los ficheros y recarga sola al guardar; no lo tengas a la vez que la instalación de marketplace.
+
+### Usar el panel
+
+El panel no puede hacer red ni conoce los nombres de tus terminales (la API v0 solo da su orden),
+así que: ten una terminal **de shell** abierta en el worktree activo, elígela en *Ejecutar en*,
+pulsa **Marcar** para ver en cuál cae el texto, y luego cualquier botón. Si el texto no aparece,
+suele ser que esa terminal está en otra pestaña. No elijas la terminal de un agente: Orca puede
+rechazar la escritura o, peor, el texto acaba en su prompt.
+
+El atajo ⌘⌥U solo dispara con el foco fuera de una terminal (dentro, Orca deja las teclas al PTY;
+usa ⌘J). Se puede cambiar en Settings → Shortcuts, grupo «Plugins».
 
 ## Cómo funciona (y por qué así)
 

@@ -53,6 +53,13 @@
       .icon-btn { width: 32px; padding: 0; cursor: pointer; display: grid; place-items: center; }
       .icon-btn:hover, button.action:hover { border-color: var(--accent); }
       .target .empty { grid-column: 1 / -1; color: var(--muted); font-size: 11.5px; }
+      .target-actions { display: flex; gap: 6px; }
+      #mark { width: auto; padding: 0 10px; font-size: 11.5px; }
+      .howto {
+        margin-bottom: 12px; padding: 8px 10px; border-radius: var(--radius);
+        border: 1px dashed var(--line); color: var(--muted); font-size: 11.5px;
+      }
+      .howto b { color: var(--fg); font-weight: 600; }
 
       section { margin-bottom: 14px; }
       section h2 {
@@ -99,10 +106,19 @@
       <span class="dot" id="dot" title="estado del bridge"></span>
     </header>
 
+    <div class="howto" id="howto">
+      <b>Cómo se usa.</b> Ten abierta una terminal de shell en el worktree activo (no la de un agente).
+      Elígela abajo, pulsa <b>Marcar</b> para ver en cuál cae el texto, y luego cualquier botón: escribe
+      <code>nan …</code> ahí y pulsa Enter. Orca no expone los nombres de las terminales al plugin, solo su orden.
+    </div>
+
     <div class="target">
       <label>Ejecutar en</label>
       <select id="terms" hidden></select>
-      <button class="icon-btn" id="refresh" title="Releer terminales del worktree activo" hidden>↻</button>
+      <div class="target-actions" id="targetActions" hidden>
+        <button class="icon-btn" id="mark" title="Escribe «# ← NaN» sin Enter en la terminal elegida, para identificarla">Marcar</button>
+        <button class="icon-btn" id="refresh" title="Releer terminales del worktree activo">↻</button>
+      </div>
       <div class="empty" id="empty">Buscando terminales del worktree activo…</div>
     </div>
 
@@ -147,7 +163,7 @@
       var seq = 0
       var pending = {}
       var $ = function (id) { return document.getElementById(id) }
-      var termsEl = $('terms'), emptyEl = $('empty'), statusEl = $('status'), dotEl = $('dot'), refreshEl = $('refresh')
+      var termsEl = $('terms'), emptyEl = $('empty'), statusEl = $('status'), dotEl = $('dot'), refreshEl = $('refresh'), markEl = $('mark'), targetActionsEl = $('targetActions')
       var actionButtons = Array.prototype.slice.call(document.querySelectorAll('button.action'))
 
       function call(action, params) {
@@ -179,7 +195,7 @@
         call('workspace.readContext').then(function (result) {
           if (!result.ok) {
             dotEl.className = 'dot err'
-            termsEl.hidden = true; refreshEl.hidden = false
+            termsEl.hidden = true; targetActionsEl.hidden = false
             emptyEl.hidden = false
             emptyEl.textContent = 'Sin acceso al worktree: ' + (result.error || result.errorCode)
             setActionsEnabled(false)
@@ -188,7 +204,7 @@
           dotEl.className = 'dot ok'
           var ctx = result.value
           if (!ctx || ctx.terminals.length === 0) {
-            termsEl.hidden = true; refreshEl.hidden = false
+            termsEl.hidden = true; targetActionsEl.hidden = false
             emptyEl.hidden = false
             emptyEl.textContent = ctx
               ? ctx.displayName + ' no tiene terminales abiertas. Abre una y pulsa ↻.'
@@ -201,24 +217,32 @@
           ctx.terminals.forEach(function (terminal, i) {
             var option = document.createElement('option')
             option.value = terminal.id
-            option.textContent = ctx.displayName + ' · terminal ' + (i + 1)
+            option.textContent = 'terminal ' + (i + 1) + ' de ' + ctx.terminals.length + ' · ' + ctx.displayName
             termsEl.appendChild(option)
           })
           if (previous && ctx.terminals.some(function (t) { return t.id === previous })) termsEl.value = previous
-          termsEl.hidden = false; refreshEl.hidden = false; emptyEl.hidden = true
+          termsEl.hidden = false; targetActionsEl.hidden = false; emptyEl.hidden = true
           setActionsEnabled(true)
           setStatus(ctx.displayName + ' @ ' + ctx.branch + ' · ' + ctx.terminals.length + (ctx.terminals.length === 1 ? ' terminal' : ' terminales'), 'ok')
         })
       }
 
       refreshEl.addEventListener('click', refresh)
+      markEl.addEventListener('click', function () {
+        // Sin Enter: solo deja una marca visible para saber qué terminal es.
+        call('terminal.sendText', { terminalId: termsEl.value, text: '# ← NaN', enter: false }).then(function (result) {
+          if (result.ok && result.value.accepted) setStatus('Marca escrita en ' + termsEl.options[termsEl.selectedIndex].text + '. Búscala entre tus pestañas; bórrala con ⌃U.', 'ok')
+          else setStatus('No se pudo marcar: ' + (result.error || result.errorCode || 'la terminal no aceptó la escritura'), 'err')
+        })
+      })
       document.addEventListener('click', function (event) {
         var button = event.target.closest('button.action')
         if (!button || button.disabled) return
         var cmd = button.dataset.cmd
         // Solo escribe la orden y pulsa Enter: la ejecuta tu shell, con tu PATH.
         call('terminal.sendText', { terminalId: termsEl.value, text: cmd, enter: true }).then(function (result) {
-          if (result.ok) setStatus('▶ ' + cmd, 'ok')
+          if (result.ok && result.value.accepted) setStatus('▶ ' + cmd + '  →  ' + termsEl.options[termsEl.selectedIndex].text + '. Si no lo ves, esa pestaña no está a la vista: usa Marcar.', 'ok')
+          else if (result.ok) setStatus('La terminal no aceptó la escritura (¿es la de un agente?). Elige otra.', 'err')
           else setStatus('No se pudo enviar: ' + (result.error || result.errorCode), 'err')
         })
       })

@@ -36,6 +36,10 @@ Fuente: `stablyai/orca` en GitHub (`src/shared/plugins/*`, `src/main/plugins/*`,
 - Comandos: aparecen en ⌘J con prefijo `plugin:`; sin argumentos. `keybindings` funcionan **solo con
   el foco en contexto `app`** (`use-global-keybindings.ts`: en terminal/editor/browser mandan sus
   propios handlers). Si el usuario está en una terminal, el atajo no hace nada: ⌘J sí.
+- `workspace.readContext` devuelve las terminales del worktree **sin título** (el binding proyecta
+  solo `handle`; el delegado sí tiene `title`) e incluye las de agentes. `terminal.sendText` a una
+  sesión de agente puede fallar con «PTY write refused» (lease) o teclear en su prompt. De ahí el
+  botón «Marcar» (texto sin Enter) para identificar la terminal.
 - Las capacidades que llama el panel (`workspace:read`, `terminal:send`) hay que declararlas
   aunque el worker no las use; el error llega al panel como `plugin does not have the … capability`.
 - Instalación: marketplace git (`orca-marketplace.json` en la raíz de un repo; entradas con
