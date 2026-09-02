@@ -79,10 +79,10 @@ los ficheros y recarga sola al guardar; no lo tengas a la vez que la instalació
 ### Usar el panel
 
 El panel no puede hacer red ni conoce los nombres de tus terminales (la API v0 solo da su orden),
-así que: ten una terminal **de shell** abierta en el worktree activo, elígela en *Ejecutar en*,
-pulsa **Marcar** para ver en cuál cae el texto, y luego cualquier botón. Si el texto no aparece,
-suele ser que esa terminal está en otra pestaña. No elijas la terminal de un agente: Orca puede
-rechazar la escritura o, peor, el texto acaba en su prompt.
+y el orden de la lista no es el de tus pestañas), así que: pulsa **Identificar** y el panel escribe
+`# NaN -> terminal N` (sin Enter) en cada terminal del worktree. Mira tu terminal de shell, elige ese
+número en *Ejecutar en* y ya: cada botón escribe `nan …` ahí y pulsa Enter. La elección se recuerda
+por worktree. Las terminales de agentes suelen rechazar la escritura; si no, borra la marca con ⌃U.
 
 El atajo ⌘⌥U solo dispara con el foco fuera de una terminal (dentro, Orca deja las teclas al PTY;
 usa ⌘J). Se puede cambiar en Settings → Shortcuts, grupo «Plugins».

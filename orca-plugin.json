@@ -3,7 +3,7 @@
   "id": "nan-usage",
   "publisher": "rub3n88",
   "name": "NaN Usage",
-  "version": "0.1.4",
+  "version": "0.1.5",
   "description": "Cuotas, consumo y salud de tu suscripción de NaN (nan.builders) dentro de Orca: comandos en la paleta, aviso al 80 % cuando un agente termina y un panel que lanza `nan` en tu terminal.",
   "engines": {
     "orca": ">=1.4.0"

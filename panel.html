@@ -107,16 +107,17 @@
     </header>
 
     <div class="howto" id="howto">
-      <b>Cómo se usa.</b> Ten abierta una terminal de shell en el worktree activo (no la de un agente).
-      Elígela abajo, pulsa <b>Marcar</b> para ver en cuál cae el texto, y luego cualquier botón: escribe
-      <code>nan …</code> ahí y pulsa Enter. Orca no expone los nombres de las terminales al plugin, solo su orden.
+      <b>Cómo se usa.</b> Orca no le dice al plugin cómo se llaman tus terminales ni en qué orden están
+      las pestañas. Pulsa <b>Identificar</b>: escribe <code># NaN -> terminal N</code> (sin Enter) en cada
+      una. Mira tu terminal de shell, elige ese número abajo y ya: cada botón escribe <code>nan …</code> ahí
+      y pulsa Enter. Se recuerda por worktree.
     </div>
 
     <div class="target">
       <label>Ejecutar en</label>
       <select id="terms" hidden></select>
       <div class="target-actions" id="targetActions" hidden>
-        <button class="icon-btn" id="mark" title="Escribe «# ← NaN» sin Enter en la terminal elegida, para identificarla">Marcar</button>
+        <button class="icon-btn" id="mark" title="Escribe «# NaN -> terminal N» sin Enter en todas las terminales del worktree, para saber cuál es cuál">Identificar</button>
         <button class="icon-btn" id="refresh" title="Releer terminales del worktree activo">↻</button>
       </div>
       <div class="empty" id="empty">Buscando terminales del worktree activo…</div>
@@ -183,6 +184,10 @@
         resolve(data)
       })
 
+      var memoryKey = null
+      function remember(id) { try { if (memoryKey) localStorage.setItem(memoryKey, id) } catch (_) {} }
+      function recall() { try { return memoryKey ? localStorage.getItem(memoryKey) : null } catch (_) { return null } }
+
       function setStatus(text, kind) {
         statusEl.textContent = text || ''
         statusEl.className = 'status' + (kind ? ' ' + kind : '')
@@ -212,7 +217,8 @@
             setActionsEnabled(false)
             return
           }
-          var previous = termsEl.value
+          memoryKey = 'nan-terminal:' + ctx.displayName
+          var previous = termsEl.value || recall()
           termsEl.innerHTML = ''
           ctx.terminals.forEach(function (terminal, i) {
             var option = document.createElement('option')
@@ -229,19 +235,28 @@
 
       refreshEl.addEventListener('click', refresh)
       markEl.addEventListener('click', function () {
-        // Sin Enter: solo deja una marca visible para saber qué terminal es.
-        call('terminal.sendText', { terminalId: termsEl.value, text: '# ← NaN', enter: false }).then(function (result) {
-          if (result.ok && result.value.accepted) setStatus('Marca escrita en ' + termsEl.options[termsEl.selectedIndex].text + '. Búscala entre tus pestañas; bórrala con ⌃U.', 'ok')
-          else setStatus('No se pudo marcar: ' + (result.error || result.errorCode || 'la terminal no aceptó la escritura'), 'err')
+        // Sin Enter: deja una marca numerada en cada terminal para saber cuál es cuál.
+        var options = Array.prototype.slice.call(termsEl.options)
+        setStatus('Escribiendo marcas…')
+        Promise.all(options.map(function (option, i) {
+          return call('terminal.sendText', { terminalId: option.value, text: '# NaN -> terminal ' + (i + 1), enter: false })
+            .then(function (result) { return result.ok && result.value.accepted })
+        })).then(function (accepted) {
+          var ok = accepted.filter(Boolean).length
+          var refused = accepted.map(function (a, i) { return a ? null : i + 1 }).filter(Boolean)
+          setStatus('Marca escrita en ' + ok + ' de ' + options.length + ' terminales' +
+            (refused.length ? ' (no aceptaron: ' + refused.join(', ') + ', seguramente agentes)' : '') +
+            '. Mira tu terminal de shell, elige ese número arriba y borra la marca con ⌃U.', 'ok')
         })
       })
+      termsEl.addEventListener('change', function () { remember(termsEl.value) })
       document.addEventListener('click', function (event) {
         var button = event.target.closest('button.action')
         if (!button || button.disabled) return
         var cmd = button.dataset.cmd
         // Solo escribe la orden y pulsa Enter: la ejecuta tu shell, con tu PATH.
         call('terminal.sendText', { terminalId: termsEl.value, text: cmd, enter: true }).then(function (result) {
-          if (result.ok && result.value.accepted) setStatus('▶ ' + cmd + '  →  ' + termsEl.options[termsEl.selectedIndex].text + '. Si no lo ves, esa pestaña no está a la vista: usa Marcar.', 'ok')
+          if (result.ok && result.value.accepted) { remember(termsEl.value); setStatus('▶ ' + cmd + '  →  ' + termsEl.options[termsEl.selectedIndex].text + '. Si no lo ves, no es tu pestaña: usa Identificar.', 'ok') }
           else if (result.ok) setStatus('La terminal no aceptó la escritura (¿es la de un agente?). Elige otra.', 'err')
           else setStatus('No se pudo enviar: ' + (result.error || result.errorCode), 'err')
         })
