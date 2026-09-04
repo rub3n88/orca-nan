@@ -1,0 +1,12 @@
+POST /audio/speech - Create speech
+POST /audio/transcriptions - Create transcription
+POST /chat/completions - Create chat completion
+POST /completions - Create completion
+POST /embeddings - Create embeddings
+POST /images/edits - Edit image
+POST /images/generations - Create image
+POST /mcp - MCP server (JSON-RPC)
+GET /models - List models
+POST /rerank - Rerank documents
+POST /responses - Create response
+POST /search - Web search

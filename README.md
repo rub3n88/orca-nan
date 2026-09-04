@@ -97,6 +97,13 @@ red declarable todavía. De ahí el reparto: el worker (Node, fuera de proceso) 
 notifica; el panel, que no puede hacer red, delega en el script. Cuando Orca añada `net:fetch`
 habrá que declararlo y volver a consentir. Contexto completo y plan en [`docs/NOTAS.md`](docs/NOTAS.md).
 
+## Mantenimiento automático
+
+Una automatización de Orca (semanal) corre `scripts/vigia.sh`, que compara la API de plugins de Orca y
+la doc/API de NaN con el snapshot en `docs/vigia/`, y si algo cambia (una capacidad nueva en Orca, un
+endpoint oficial de uso en NaN, modelos o cuotas) adapta el plugin en una rama y abre un PR. El criterio
+está en `docs/vigia/PROMPT.md`. Nunca publica nada por su cuenta.
+
 ## Desarrollo
 
 ```sh

@@ -1,0 +1,17 @@
+.allTime.byModel[].inputTokens int
+.allTime.byModel[].model str
+.allTime.byModel[].outputTokens int
+.allTime.cachedAt str
+.allTime.totalTokens int
+.last24h.byModel[].inputTokens int
+.last24h.byModel[].model str
+.last24h.byModel[].outputTokens int
+.last24h.totalTokens int
+.last30d.byModel[].inputTokens int
+.last30d.byModel[].model str
+.last30d.byModel[].outputTokens int
+.last30d.totalTokens int
+.monthToDate.byModel[].inputTokens int
+.monthToDate.byModel[].model str
+.monthToDate.byModel[].outputTokens int
+.monthToDate.totalTokens int

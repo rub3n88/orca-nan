@@ -1,0 +1,7 @@
+.models[].cap int
+.models[].model str
+.models[].periodEnd str
+.models[].remaining int
+.models[].tokensUsed int
+.models[].updatedAt str
+.periodStart str

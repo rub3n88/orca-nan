@@ -126,6 +126,21 @@ tiempo de reset— **no se puede hacer con plugins v0**. Se puede como proveedor
 - Pedir a NaN un endpoint documentado de cuota/uso (aunque sea el mismo `cloud-api`) para no
   depender de rutas del bundle. Y `tokensUsed` de la ventana 4h de glm5.2.
 
+## Vigía (automatización semanal en Orca)
+
+`scripts/vigia.sh` fotografía lo que le importa al plugin y lo compara con `docs/vigia/`:
+- Orca: ficheros raw de `stablyai/orca@main` (`plugin-capabilities`, `plugin-host-api`,
+  `plugin-manifest`, `plugin-events`, `plugin-host-protocol`, `plugin-panel-shell`,
+  `plugin-content-pack-contributions`, `rate-limit-types`), commit de main, ejemplos, la sección
+  «Plugins (Experimental)» y la página de usage-tracking de la doc, versión instalada.
+- NaN: la doc desde su fuente pública `helmcode/nan` (`models.mdx`, `getting-started.md`,
+  `examples.md`, `openapi.json` → lista de endpoints oficiales), rutas de cloud-api sacadas del bundle
+  del SPA, forma (solo claves) de `/api/usage/quota`, `/api/metrics/usage`, `/api/billing`, modelos
+  servidos y caps por modelo.
+Una automatización de Orca (`nan-orca-vigia`, lunes 09:00 Europe/Madrid, agente claude) ejecuta el
+script y aplica el criterio de `docs/vigia/PROMPT.md`: cambios de código → rama `vigia/<fecha>` + PR;
+solo snapshots → commit en main; nunca publica. Se lanza a mano con `orca automations run`.
+
 ## Cómo se probó
 
 - Script: todos los subcomandos contra la API real.

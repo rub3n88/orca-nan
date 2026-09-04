@@ -1,0 +1,6 @@
+Plugins (Experimental)
+Plugin system — Settings → Plugins. Turn the system on, then review and enable each plugin individually. Nothing runs until you consent.
+Marketplaces — add a git marketplace source, browse plugins, preview capabilities (panels, commands, language packs, VM recipes), install, update, or roll back.
+Plugin workers always run on this computer; SSH workspace actions still route through Orca.
+Capability and API shapes may change; treat third-party plugins as untrusted software.
+Experimental

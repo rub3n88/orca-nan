@@ -1,0 +1,6 @@
+deepseek-v4-flash 3000000000 
+glm5.2 3000000000 window
+glm5.3 3000000000 window
+glm5.3-flash 2000000000 
+mimo-v2.5 1000000000 
+qwen3.8-flash 500000000 
