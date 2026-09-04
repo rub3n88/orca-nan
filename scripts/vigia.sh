@@ -5,12 +5,16 @@
 #
 #   scripts/vigia.sh            # actualiza snapshots y muestra el diff
 #   scripts/vigia.sh --check    # solo muestra qué cambiaría, sin escribir
+#   scripts/vigia.sh --precheck # como --check, pero sale 0 si hay cambios y 1 si no
+#                               # (para el --precheck de la automatización de Orca:
+#                               #  sin cambios no se arranca el agente)
 set -u
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 OUT="$ROOT/docs/vigia"
 TMP="$(mktemp -d)"
 trap 'rm -rf "$TMP"' EXIT
-CHECK=0; [ "${1:-}" = "--check" ] && CHECK=1
+CHECK=0; PRE=0
+case "${1:-}" in --check) CHECK=1;; --precheck) CHECK=1; PRE=1;; esac
 mkdir -p "$OUT/orca" "$OUT/nan"
 
 say() { printf '\n== %s\n' "$*"; }
@@ -95,4 +99,5 @@ done
 [ $changed -eq 0 ] && echo "  sin cambios"
 echo
 echo "orca instalado: $(cat "$TMP/orca-installed-version.txt") · orca main: $(cut -c1-9 "$TMP/orca-commit.txt" 2>/dev/null || echo ?) · $(date +%F)"
+if [ $PRE -eq 1 ]; then [ $changed -eq 1 ] && exit 0 || exit 1; fi
 exit 0
