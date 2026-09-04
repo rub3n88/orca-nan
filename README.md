@@ -99,7 +99,7 @@ habrá que declararlo y volver a consentir. Contexto completo y plan en [`docs/N
 
 ## Mantenimiento automático
 
-Una automatización de Orca (semanal) corre `scripts/vigia.sh`, que compara la API de plugins de Orca y
+Una automatización de Orca (diaria, solo si algo cambió) corre `scripts/vigia.sh`, que compara la API de plugins de Orca y
 la doc/API de NaN con el snapshot en `docs/vigia/`, y si algo cambia (una capacidad nueva en Orca, un
 endpoint oficial de uso en NaN, modelos o cuotas) adapta el plugin en una rama y abre un PR. El criterio
 está en `docs/vigia/PROMPT.md`. Nunca publica nada por su cuenta.

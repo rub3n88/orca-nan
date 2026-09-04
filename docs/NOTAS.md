@@ -137,7 +137,7 @@ tiempo de reset— **no se puede hacer con plugins v0**. Se puede como proveedor
   `examples.md`, `openapi.json` → lista de endpoints oficiales), rutas de cloud-api sacadas del bundle
   del SPA, forma (solo claves) de `/api/usage/quota`, `/api/metrics/usage`, `/api/billing`, modelos
   servidos y caps por modelo.
-Una automatización de Orca (`nan-orca-vigia`, lunes 09:00 Europe/Madrid, agente claude) ejecuta el
+Una automatización de Orca (`nan-orca-vigia`, diaria 09:00 Europe/Madrid, agente claude; el precheck `vigia.sh --precheck` la salta si no hay cambios, y el commit de Orca y la versión instalada no cuentan como cambio) ejecuta el
 script y aplica el criterio de `docs/vigia/PROMPT.md`: cambios de código → rama `vigia/<fecha>` + PR;
 solo snapshots → commit en main; nunca publica. Se lanza a mano con `orca automations run`.
 

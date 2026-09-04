@@ -87,12 +87,15 @@ for f in "$TMP"/orca-* "$TMP"/nan-*; do
   [ -s "$f" ] || continue
   name=$(basename "$f"); dir=orca; case "$name" in nan-*) dir=nan;; esac
   dest="$OUT/$dir/${name#*-}"
+  # Informativos: cambian a diario sin que cambie nada que nos afecte. Se guardan, no disparan.
+  info=0; case "${name#*-}" in commit.txt|installed-version.txt) info=1;; esac
   if [ -f "$dest" ]; then
     if ! diff -q "$dest" "$f" >/dev/null; then
-      changed=1; echo "--- CAMBIA: $dir/${name#*-}"; diff -u "$dest" "$f" | sed -n '1,120p'
+      if [ $info -eq 1 ]; then echo "--- (info) $dir/${name#*-}: $(cat "$dest") → $(cat "$f")"
+      else changed=1; echo "--- CAMBIA: $dir/${name#*-}"; diff -u "$dest" "$f" | sed -n '1,120p'; fi
     fi
   else
-    changed=1; echo "--- NUEVO: $dir/${name#*-} ($(wc -l < "$f") líneas)"
+    [ $info -eq 1 ] || changed=1; echo "--- NUEVO: $dir/${name#*-} ($(wc -l < "$f") líneas)"
   fi
   [ $CHECK -eq 1 ] || cp "$f" "$dest"
 done

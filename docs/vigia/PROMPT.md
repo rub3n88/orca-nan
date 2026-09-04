@@ -1,6 +1,6 @@
 # Prompt de la automatización «vigía» (Orca, semanal)
 
-Este es el texto que corre la automatización de Orca cada lunes. Se guarda aquí para versionarlo;
+Este es el texto que corre la automatización de Orca cada día a las 09:00 (solo si el precheck detecta cambios). Se guarda aquí para versionarlo;
 si lo cambias, actualiza también la automatización (`orca automations edit`).
 
 ---
