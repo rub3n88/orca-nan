@@ -9,9 +9,13 @@ Eres el vigía del repo orca-nan (script `nan` + plugin «NaN Usage» para Orca)
 qué ha cambiado en Orca y en NaN desde la última vez y adaptar el plugin SIN publicar nada. Lee
 primero `docs/NOTAS.md` (contexto y roadmap) y `README.md`.
 
-PASO 1 — foto y diff. Ejecuta `git checkout main && git pull -q` y luego `scripts/vigia.sh`. Muestra
-el diff frente al snapshot anterior (`docs/vigia/`). Si dice «sin cambios», termina aquí escribiendo
-«vigía <fecha>: sin cambios».
+PASO 1 — foto y diff. Ponte al día con `main` y corre `scripts/vigia.sh`. Ojo: corres en un worktree
+por-run y `main` está checkeado en el worktree principal, así que `git checkout main` falla; tu rama
+sale de `main`, o sea que basta `git fetch -q origin && git merge --ff-only origin/main`. Muestra
+el diff frente al snapshot anterior (`docs/vigia/`). Si dice «sin cambios», escribe «vigía <fecha>:
+sin cambios», sáltate los pasos 2 y 3 y ve al PASO 4. El script deja siempre reescritos
+`docs/vigia/orca/commit.txt` e `installed-version.txt` (los informativos): no los commitees en ese
+caso —serían ruido diario en `main`— y no cuentan como «cambios sin commitear» para el PASO 4.
 
 PASO 2 — criterio. Clasifica cada cambio del diff en una de estas cajas:
 - ORCA / capacidades: `PLUGIN_CAPABILITY_KINDS` nuevo (p. ej. `net:fetch`, `process:exec`) → declararlo
@@ -38,11 +42,28 @@ PASO 3 — actuar.
   `git push "https://x-access-token:$(gh auth token --user rub3n88)@github.com/rub3n88/orca-nan.git" vigia/<fecha>`
   y abre un PR a `main` con `GH_TOKEN=$(gh auth token --user rub3n88) gh pr create` explicando qué
   cambió fuera y qué has hecho dentro. NUNCA hagas push a `main` con código.
-- Si solo cambian snapshots (ruido o cambios que ya están cubiertos): commitea `docs/vigia/` en
-  `main` con el mensaje «vigía <fecha>: snapshots» y haz push igual que arriba. Nada más.
+- Si solo cambian snapshots (ruido o cambios que ya están cubiertos): commitea `docs/vigia/` con el
+  mensaje «vigía <fecha>: snapshots» y publícalo en `main` con
+  `git push "https://x-access-token:$(gh auth token --user rub3n88)@github.com/rub3n88/orca-nan.git" HEAD:main`
+  (no puedes hacer `checkout main` desde aquí). Nada más.
 - Si el cambio es grande o ambiguo (p. ej. Orca cambia el modelo de plugins entero): no lo
   implementes; escribe `docs/vigia/informe-<fecha>.md` con el análisis y las opciones, commitéalo en
   `main` y termina.
+
+PASO 4 — cerrar el worktree. Cuando hayas terminado bien (uno de estos tres: «sin cambios»,
+snapshots commiteados en `main`, o PR abierto y enlazado en el resumen), cierra tu propio worktree:
+la automatización crea uno nuevo por ejecución y si no se acumulan. Escribe ANTES el resumen de 5
+líneas y deja el cierre como último comando, en segundo plano y desacoplado de la terminal —te estás
+matando a ti mismo: sin `nohup` el borrado muere con el PTY, y sin el `sleep` se lleva por delante tu
+último mensaje:
+
+  WT=$(orca worktree current | sed -n 's/^path: //p')
+  nohup bash -c "sleep 20; cd /; orca worktree rm --worktree 'path:$WT' --force" >/dev/null 2>&1 &
+
+Eso cierra las terminales del worktree y borra worktree y rama local. No se pierde nada: la rama
+`vigia/<fecha>` del PR ya está en el remoto y los commits de snapshots ya están en `main`.
+NO cierres nada si algo falló, si escribiste un `informe-<fecha>.md` que hay que revisar, si quedan
+cambios sin commitear o si el push o el PR no salieron: deja la terminal viva para revisarla.
 
 REGLAS que no se negocian:
 - No publicar en NaN (Projects, Discord) ni en ningún sitio; no crear releases; no tocar la
