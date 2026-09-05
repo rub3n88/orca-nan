@@ -7,9 +7,14 @@
 /api/admin/features/catalogue/
 /api/admin/members
 /api/admin/members/
+/api/admin/members/search
+/api/admin/metrics/cohorts
+/api/admin/metrics/funnel
+/api/admin/metrics/mrr
 /api/admin/metrics/overview
+/api/admin/metrics/stale-invitations
 /api/admin/metrics/timeseries
-/api/admin/waitlist
+/api/admin/tags
 /api/admin/waitlist/final-notice
 /api/admin/waitlist/invite
 /api/admin/waitlist/remind
@@ -62,6 +67,7 @@
 /api/usage/quota
 /api/video-gen
 /api/video-gen/
+/api/video-gen/refs
 /api/videos
 /api/videos/
 /api/videos/tags
