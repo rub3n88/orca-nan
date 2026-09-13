@@ -63,6 +63,7 @@
 /api/spaces/catalog
 /api/spaces/checkout
 /api/spaces/free
+/api/upgrade/preview
 /api/upgrade/request
 /api/usage/quota
 /api/video-gen
