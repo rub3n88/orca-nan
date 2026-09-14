@@ -51,6 +51,11 @@ $ nan ping
 `ping` avisa si el modelo que responde no es el que pediste (NaN puede degradar de modelo sin
 error). `config` genera los snippets con los modelos que hay *ahora*, no con una lista pegada.
 
+`models` añade a cada modelo lo que dice su ficha en la doc de NaN: contexto, modalidades, respuesta
+máxima y si es de generación anterior. Un `—` en la columna de cuota significa que ese modelo no sale
+en `/usage/quota`: los de imagen, voz y embeddings van por un presupuesto aparte (`flux-2-klein`, por
+ejemplo, gasta 20 req/min y 100 req/mes, no tokens).
+
 ## NaN Usage — el plugin de Orca
 
 | Dónde | Qué |

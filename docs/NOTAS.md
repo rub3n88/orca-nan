@@ -67,6 +67,18 @@ Fuente: `stablyai/orca` en GitHub (`src/shared/plugins/*`, `src/main/plugins/*`,
   - `GET /api/projects` (público), `POST /api/projects` (name, description, imageUrl, appUrl,
     repoUrl, tags ⊂ {agents, tools, mcp, websites, automation, ai, data, voice, api}); solo tier
     inference. Es la sección «Projects» de nan.builders.
+- **Imágenes** (`flux-2-klein`): `POST /v1/images/generations` y `/v1/images/edits` (hasta cuatro
+  referencias, sin `mask`), documentadas el 2026-09-14. Van por **presupuesto propio** —20 req/min y
+  100 req/mes— que no toca la cuota de tokens, así que no aparecen en `/api/usage/quota` ni en
+  `nan quota`. Igual que voz y embeddings: un `—` en `nan models` es eso, no un error.
+- La ficha de modelos publica desde el 2026-09-14 el campo **«Max answer»** (131K en `qwen3.8-flash`
+  y `mimo-v2.5`): es lo que alimenta `maxTokens` en `nan config pi`, antes 16K fijo para todos. Y
+  `qwen3.6` queda marcado como **generación anterior** —se sigue sirviendo, pero el punto de partida
+  recomendado es `deepseek-v4-flash`, que ya es el primero de `chat_models()` por orden alfabético.
+- Punto ciego conocido de `MODEL_NOTES`: `minimax-h3` y `glm5.3` están vivos (el primero en
+  `/v1/models`, el segundo en `/api/usage/quota`) pero **no tienen ficha en la doc de NaN**. No se
+  inventan specs: `nan models` los marca como «no documentado en la ficha local» y los snippets de
+  config les dan los valores conservadores.
 - Cloudflare devuelve **403 al User-Agent por defecto de `urllib`**; curl y Node pasan. El script
   manda UA propio.
 - Latencias medidas (primer token, 2026-09-02): qwen3.8-flash 1,1 s · deepseek-v4-flash 1,6 s ·
@@ -125,6 +137,9 @@ tiempo de reset— **no se puede hacer con plugins v0**. Se puede como proveedor
 - Publicar en Projects (`nan.builders/projects`) con tags `tools`, `api`, `agents`.
 - Pedir a NaN un endpoint documentado de cuota/uso (aunque sea el mismo `cloud-api`) para no
   depender de rutas del bundle. Y `tokensUsed` de la ventana 4h de glm5.2.
+- Pedir ficha en la doc para `minimax-h3` y `glm5.3`, que se sirven sin `<ModelCard>`. Y el consumo
+  del presupuesto de imagen (req/mes de `flux-2-klein`), que hoy no expone ninguna ruta: sin eso,
+  `nan quota` no puede enseñarlo.
 
 ## Vigía (automatización semanal en Orca)
 
