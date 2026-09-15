@@ -38,8 +38,8 @@ nan --json <cmd>       salida JSON cruda
 ```
 $ nan quota
 periodo desde 2026-09-01
-  glm5.3-flash         █░░░░░░░░░░░░░░░░░░░   3.1%    15.5M / 500.0M reset 28d
-  qwen3.8-flash        ░░░░░░░░░░░░░░░░░░░░   0.2%     2.4M / 1.00B  reset 28d
+  glm5.3-flash         █░░░░░░░░░░░░░░░░░░░   3.1%    62.0M / 2.00B  reset 28d
+  qwen3.8-flash        ░░░░░░░░░░░░░░░░░░░░   0.2%     1.2M / 500.0M reset 28d
   glm5.2               ░░░░░░░░░░░░░░░░░░░░   0.0%        0 / 3.00B  reset 2d  ventana 4h: 400.0M
 
 $ nan ping
