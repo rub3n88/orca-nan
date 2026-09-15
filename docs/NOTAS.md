@@ -71,6 +71,15 @@ Fuente: `stablyai/orca` en GitHub (`src/shared/plugins/*`, `src/main/plugins/*`,
   manda UA propio.
 - Latencias medidas (primer token, 2026-09-02): qwen3.8-flash 1,1 s · deepseek-v4-flash 1,6 s ·
   glm5.3-flash 9,4 s (reasoning por defecto).
+- **Ficha de modelos (doc, 2026-09-15)**: `qwen3.6` baja a «generación anterior» —se sigue sirviendo
+  para no romper configs, pero la doc manda empezar por `deepseek-v4-flash`—; `qwen3.8-flash` y
+  `mimo-v2.5` estrenan «Max answer» 131K; `gemma4` y `qwen3.6` corrigen contexto 256K → 262K (lo que
+  `MODEL_NOTES` ya decía). Modelos servidos y caps, sin cambios.
+- **Imágenes**: `flux-2-klein` por `/v1/images/generations` y `/v1/images/edits` (ambas ya estaban en
+  el `openapi.json`) con **presupuesto propio**: 20 req/min y 100 req/mes que **no** tocan la cuota
+  de tokens ni salen en `/api/usage/quota`. Por eso `nan quota` no lo lista y la nota del modelo lo
+  dice. Lado (`size`) múltiplo de 16 entre 256 y 1536, `n` ≤ 4, URL válida ~60 min; `edits` acepta
+  hasta 4 imágenes de referencia y rechaza `mask` con 400.
 
 ## Decisiones
 
