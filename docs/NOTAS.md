@@ -179,11 +179,12 @@ tiempo de reset— **no se puede hacer con plugins v0**. Se puede como proveedor
   `/api/metrics/usage`, `/api/billing`, modelos servidos y caps por modelo. Si una fuente deja de
   bajar (404 por renombrado), se avisa como «DESAPARECE» en vez de callar.
 Una automatización de Orca (`nan-orca-vigia`, diaria 10:00 Europe/Madrid, agente claude; el precheck `vigia.sh --precheck` la salta si no hay cambios, y el commit de Orca y la versión instalada no cuentan como cambio) ejecuta el
-script y aplica el criterio de `docs/vigia/PROMPT.md`: cambios de código → rama `vigia/<fecha>` + PR;
-solo snapshots → commit en main; nunca publica. Se lanza a mano con `orca automations run`.
-Como compara siempre contra `main`, si un PR `vigia/*` sigue abierto el vigía **empuja a esa misma
-rama y actualiza ese PR** en vez de abrir otro (pasó del 14 al 16 de septiembre: tres PRs casi
-idénticos, #1-#3). Un PR de vigía sin mergear en 7 días es una señal para el humano, no para el bot.
+script y aplica el criterio de `docs/vigia/PROMPT.md`: cambios de código → rama `vigia/<fecha>` + PR +
+merge + release; solo snapshots → commit en main; no publica fuera de GitHub. Se lanza a mano con `orca automations run`.
+Desde el 2026-09-16 el vigía es **autónomo** (mandato de Rubén): cuando toca código abre el PR,
+lo mergea él mismo (squash), sube patch y publica la release; si encuentra un PR `vigia/*` abierto
+de una ejecución anterior lo cierra como superado (pasó del 14 al 16 de septiembre: tres PRs casi
+idénticos, #1-#3, que nadie mergeó). Solo deja al humano el caso «informe» (cambio grande o ambiguo).
 Corre con `workspaceMode: new_per_run` (un worktree por ejecución), así que al terminar bien el
 agente borra su propio worktree —`orca worktree rm --worktree path:<…> --force` en segundo plano y
 con `nohup`, porque se está matando a sí mismo— y solo lo deja vivo si algo falló (push o PR sin

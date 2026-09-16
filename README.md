@@ -138,8 +138,9 @@ habrá que declararlo y volver a consentir. Contexto completo y plan en [`docs/N
 Una automatización de Orca (diaria, solo si algo cambió) corre `scripts/vigia.sh`, que compara la
 API de plugins de Orca, la doc/API de NaN y el CLI oficial (`helmcode/nan-cli`: release y ficha de
 modelos) con el snapshot en `docs/vigia/`, y si algo cambia (una capacidad nueva en Orca, un
-endpoint oficial de uso en NaN, modelos o cuotas) adapta el plugin en una rama y abre —o actualiza—
-un PR `vigia/*`. El criterio está en `docs/vigia/PROMPT.md`. Nunca publica nada por su cuenta.
+endpoint oficial de uso en NaN, modelos o cuotas) adapta el plugin, lo prueba, lo mergea en `main` y
+publica la release (versión patch). Es autónomo; el criterio está en `docs/vigia/PROMPT.md`. Si el
+cambio es grande o ambiguo escribe un informe en `docs/vigia/` en vez de implementarlo.
 
 ## Desarrollo
 
