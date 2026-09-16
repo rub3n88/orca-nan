@@ -1,0 +1,170 @@
+# NaN CLI.
+
+NaN has an official terminal tool, [`helmcode/nan-cli`](https://github.com/helmcode/nan-cli). It does two things: it shows you your real usage, and it **configures your coding tools for you**, without you having to edit configuration files by hand.
+
+It is a shortcut, not a requirement. Everything it does can be done by hand by following your tool's page in this same section.
+
+## What it configures on its own
+
+| Tool                       | Automatic setup |
+| -------------------------- | --------------- |
+| [OpenCode](/docs/opencode) | Yes             |
+| [Codex](/docs/codex)       | Yes             |
+| Pi                         | Yes             |
+| Factory AI (`droid`)       | Yes             |
+| [Hermes](/docs/hermes)     | Yes             |
+
+Claude Code, Cursor, VS Code, Cline and Zed still need the manual configuration from their pages.
+
+It only lists tools you actually have installed, and it only touches the NaN
+part of each file: everything else in them is left as it was, and unticking a
+tool takes ours back out again. Hermes is the exception to "writes the file":
+the CLI drives `hermes config set`, which is Hermes' own way of writing its
+config, so the comments in it survive.
+
+The key you paste is checked against the cluster before anything is written,
+so a mistyped one is caught there instead of turning up later as a `401`
+inside each tool.
+
+## What else you get
+
+The CLI opens a panel with tabs you move through with the arrow keys:
+
+| Tab     | What for                                                   |
+| ------- | ---------------------------------------------------------- |
+| Home    | The keys, and what each tab is for                         |
+| Profile | Your account details                                       |
+| Usage   | Tokens spent over 24 hours, 30 days and all time           |
+| Models  | The models available and how much you have spent on each   |
+| Costs   | What the same thing would have cost you at other providers |
+| Setup   | Your API key and the automatic setup of tools              |
+| About   | Version and links                                          |
+
+The **Usage** tab is the fastest way to know how much quota you have left before starting a long agent session.
+
+## Installation
+
+### Install the binary
+
+On macOS and Linux, one line:
+
+```bash
+curl -fsSL https://nan.builders/install | bash
+```
+
+The installer looks at your system and architecture, downloads the right binary from the latest published release, **verifies its checksum** and puts it in `/usr/local/bin/nan`. If that directory needs administrator rights, it will ask for your password through `sudo`.
+
+To put it somewhere else, give it the directory yourself:
+
+```bash
+INSTALL_DIR="$HOME/.local/bin" curl -fsSL https://nan.builders/install | bash
+```
+
+If the directory you choose is not in your `PATH`, the installer says so and hands you the line to add to your `~/.zshrc` or your `~/.bashrc`.
+
+On Windows, from PowerShell:
+
+```powershell
+irm https://nan.builders/install.ps1 | iex
+```
+
+It does the same work: resolves the latest release, downloads the `.zip` for your architecture, **verifies its checksum** and puts `nan.exe` in `%LOCALAPPDATA%\Programs
+an`, adding that directory to your user `PATH` if it is not there already. Terminals you already had open will not see it until you restart them.
+
+It installs for your user and not for the whole machine, deliberately: the Windows equivalent of the `sudo` prompt is an elevation dialog out of a piped script, which is worse. To put it elsewhere:
+
+```powershell
+& ([scriptblock]::Create((irm https://nan.builders/install.ps1))) -InstallDir "C:	ools"
+```
+
+There are binaries for macOS, Linux and Windows, on Intel and on ARM.
+
+### Check that it worked
+
+```bash
+nan --version
+```
+
+It has to answer with the version and the name of the tool. If your terminal says the command is not found, the binary is installed but its directory is not in your `PATH`.
+
+### Get your API key
+
+At [cloud.nan.builders](https://cloud.nan.builders/), in your user settings, under **API Keys**.
+
+> \[!INFO] Or let the CLI log you in
+>
+> `nan auth login --email you@yours` sends you a sign-in link, the same one the platform uses. Copy it out of the email and paste it back into the command, without opening it in the browser first: it works once, and the browser would spend it. That gets you the Profile, Usage and Costs tabs. The Setup tab, which is the one that configures your tools, needs the API key and nothing else.
+>
+> Before v0.1.2 this command pointed at a retired Discord endpoint and answered `404`. If that is what you see, you are on an older build: `curl -fsSL https://nan.builders/install | bash` again.
+
+### Configure your tools
+
+```bash
+nan
+```
+
+Inside the panel, go to the **Setup** tab with the arrow keys. Press `e` and paste your API key. With `space`, mark the tools you want configured. Press `c` to apply.
+
+The CLI writes the configuration for each tool you marked. Quit with `q` and start your agent:
+
+```bash
+opencode
+```
+
+Inside OpenCode, `/models` shows you the NaN models, already available.
+
+**Building from source**
+
+This is the path on Windows, and the one you want if you are going to work on the CLI itself. You need [Go](https://go.dev) 1.26 or newer:
+
+```bash
+git clone https://github.com/helmcode/nan-cli
+cd nan-cli
+go build -o nan .
+```
+
+That leaves the binary in the repository directory. To have it at hand from anywhere, move it to a directory in your `PATH`:
+
+```bash
+mkdir -p ~/.local/bin
+mv ./nan ~/.local/bin/nan
+```
+
+If that directory is not in your `PATH` yet, add it to your shell's startup file. On macOS the default shell is **zsh**, so the file is `~/.zshrc` and not `~/.bashrc`:
+
+```bash
+echo 'export PATH="$HOME/.local/bin:$PATH"' >> ~/.zshrc
+source ~/.zshrc
+```
+
+On Linux with bash, the same command but against `~/.bashrc`.
+
+## Updating
+
+Run the installer again. It always brings the latest published release and overwrites the one you have:
+
+```bash
+curl -fsSL https://nan.builders/install | bash
+```
+
+To remove it, delete the binary: `rm /usr/local/bin/nan`, or whatever path you gave it with `INSTALL_DIR`. It leaves nothing else behind on your system.
+
+## If you would rather not install anything
+
+That is perfectly reasonable. Go straight to your tool's page and copy the configuration block:
+
+- [OpenCode](/docs/opencode)
+- [Codex](/docs/codex)
+- [Claude Code](/docs/claude-code)
+- [Cursor](/docs/cursor)
+- [VS Code and Copilot](/docs/vscode)
+- [Cline](/docs/cline)
+- [Zed](/docs/zed)
+- [Other tools](/docs/other-tools)
+
+The result is the same. The only thing you miss out on are the usage and cost tabs.
+
+**Known issues**
+
+- **On Windows you have to build.** The published releases carry macOS and Linux binaries; for Windows, the path for now is `go build`.
+- **The installer asks GitHub for the list of releases.** If you are behind a proxy that blocks `api.github.com`, it will find nothing to download. In that case, grab the `.tar.gz` for your system by hand from the [releases page](https://github.com/helmcode/nan-cli/releases).

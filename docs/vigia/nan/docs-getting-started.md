@@ -1,39 +1,152 @@
----
-title: Getting Started
-description: Configure your favorite IDE or tool to connect to NaN models.
-order: 1
-group: Get started
----
+# Getting started.
 
-# Getting Started.
+The NaN API is OpenAI-compatible. You only need two things, a **base URL** and an **API key**, and any tool or SDK that accepts those two fields works with NaN without touching anything else.
 
-Access is via LiteLLM with an OpenAI-compatible API. Works with any tool that accepts a `base URL` + `API key`: Cursor, Cline, Continue, Aider, Open Code, Open WebUI, or any OpenAI-compatible SDK.
+| Field               | Value                         |
+| ------------------- | ----------------------------- |
+| Base URL            | `https://api.nan.builders/v1` |
+| API key             | yours, it starts with `sk-`   |
+| Model to start with | `deepseek-v4-flash`           |
 
-## Get your API Key
+### Get your API key
 
-You must be a NaN community member. If you're already subscribed, generate your API Key from the user settings section under "API Keys" on the [platform](https://cloud.nan.builders/). The key is personal and non-transferable.
+You have to be a member of the NaN community. Go to [cloud.nan.builders](https://cloud.nan.builders/), open your user settings and go to the **API Keys** section to generate yours.
 
-> **Note**
-> Support is for technical issues only.
+The key is personal, non-transferable, and shown only once: copy it as soon as you generate it. If you lose it, nothing breaks, generate another one and delete the old one from the same panel.
 
-## Configure your tool
+> \[!WARNING] Do not paste it into your code
+>
+> A key pushed to a repository is found by a bot within minutes. Keep it in an environment variable and read it from there, like the examples on this page do.
 
-| Field | Value |
-|---|---|
-| base URL | `https://api.nan.builders/v1` |
-| API Key | `sk-your-key-here` |
-| Model | `qwen3.6` |
+### Keep it in an environment variable
 
-OpenAI-compatible configuration example:
+```bash
+# macOS and Linux
+export NAN_API_KEY="sk-your-key"
+```
+
+```powershell
+# Windows, PowerShell
+$env:NAN_API_KEY = "sk-your-key"
+```
+
+That only lasts as long as the terminal does. To make it survive closing it, add the line to your `~/.zshrc`, your `~/.bashrc` or your PowerShell profile.
+
+### Make your first call
+
+```bash
+curl https://api.nan.builders/v1/chat/completions \
+  -H "Authorization: Bearer $NAN_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model": "deepseek-v4-flash",
+    "messages": [{ "role": "user", "content": "Introduce yourself in one line." }]
+  }'
+```
+
+If all goes well you get back a JSON and the model's text is in `choices[0].message.content`:
 
 ```json
-provider: {
-  openai: {
-    npm: "@ai-sdk/openai",
-    name: "NaN",
-    apiKey: "sk-your-key-here",
-    baseURL: "https://api.nan.builders/v1",
-    model: "qwen3.6"
-  }
+{
+  "id": "chatcmpl-...",
+  "model": "deepseek-v4-flash",
+  "choices": [
+    { "index": 0, "message": { "role": "assistant", "content": "I am an open model..." } }
+  ],
+  "usage": { "prompt_tokens": 14, "completion_tokens": 23, "total_tokens": 37 }
 }
 ```
+
+You now have access to the cluster. Everything else is a variation on that same call.
+
+### The same thing from your code
+
+Use the official OpenAI SDK and change its `base_url`. There is no NaN library to install.
+
+```python
+# pip install openai
+import os
+from openai import OpenAI
+
+client = OpenAI(
+    api_key=os.environ["NAN_API_KEY"],
+    base_url="https://api.nan.builders/v1",
+)
+
+resp = client.chat.completions.create(
+    model="deepseek-v4-flash",
+    messages=[{"role": "user", "content": "Introduce yourself in one line."}],
+)
+print(resp.choices[0].message.content)
+```
+
+```javascript
+// npm install openai
+import OpenAI from 'openai';
+
+const client = new OpenAI({
+  apiKey: process.env.NAN_API_KEY,
+  baseURL: 'https://api.nan.builders/v1',
+});
+
+const resp = await client.chat.completions.create({
+  model: 'deepseek-v4-flash',
+  messages: [{ role: 'user', content: 'Introduce yourself in one line.' }],
+});
+console.log(resp.choices[0].message.content);
+```
+
+There are more examples, including embeddings, speech, images and web search, in [Examples](/docs/examples).
+
+### Choose your model
+
+`deepseek-v4-flash` is a good starting point, but it is neither the only one nor the best at everything. The full list, with what each one is good for, is in [Choose your model](/docs/choose-a-model).
+
+And the list **your** key can actually use is always the one the API gives you:
+
+```bash
+curl https://api.nan.builders/v1/models \
+  -H "Authorization: Bearer $NAN_API_KEY"
+```
+
+### Connect your editor or your agent
+
+Cursor, Codex, VS Code, Cline, OpenCode, Zed and company are configured with those same two values. Each one asks for them somewhere different, and that is what [Set up your agent](/docs/agent-setup) collects, with one page per tool.
+
+[Claude Code](/docs/claude-code) is the one exception, and it is not a matter of where the fields go: it speaks Anthropic's protocol, so it does not point at NaN directly. Its page has the two ways around that.
+
+If you use OpenCode, Codex, Pi or droid, the [NaN CLI](/docs/nan-cli) configures them for you without editing anything.
+
+## If something fails
+
+Every error arrives in the same shape as OpenAI's: a JSON with `error.message`, `error.type` and a short `error.code` you can branch on in your code.
+
+| Code  | What happened                                                               | What to do                                                                                                             |
+| ----- | --------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| `401` | The key is missing, misspelled or gone, **or it does not reach that model** | Check the `Authorization: Bearer ...` header. If the key works on other models, it is the tier: `glm5.3` needs premium |
+| `402` | You have spent that model's token quota                                     | Switch models, or wait for that model's quota period to reset                                                          |
+| `403` | Your plan does not reach that endpoint                                      | Image generation needs inference membership                                                                            |
+| `404` | That model id does not exist                                                | Check the spelling in [Choose your model](/docs/choose-a-model) or with `GET /v1/models`                               |
+| `429` | Too many requests at once, or quota exhausted                               | Retry, waiting a little longer each time                                                                               |
+| `5xx` | The failure is ours                                                         | Retry; if it persists, say so in `#support`                                                                            |
+
+Retrying only makes sense for `429` and for `5xx`. A `401`, a `403` or a `404` will fail in exactly the same way until you change the request, and a `402` is not fixed by insisting: the counter goes back to zero when that model's quota period does, which is the calendar month for everything counted per month and your Stripe period for `glm5.3`.
+
+The full detail, endpoint by endpoint, is in the [API reference](/docs/api).
+
+**The limits, in short**
+
+Two limits are per API key and apply to everything you call: requests per minute, and requests at once.
+
+On top of those, some models carry one of their own: a tokens-per-minute ceiling on the big chat models, and a requests-per-minute one on `rerank`. `glm5.3` is not gated per minute at all, but by a rolling token window plus an allowance per billing period. Web search runs on a budget separate from the models'.
+
+The current figures are at the end of [Models](/docs/models), which is where they are published so that no two versions of the same number go around.
+
+## Next steps
+
+- [Choose your model](/docs/choose-a-model): which model to ask for each task, and how its id is spelled.
+- [Set up your agent](/docs/agent-setup): Cursor, Claude Code, Codex, VS Code, Cline, OpenCode, Zed and the rest.
+- [Gentle-AI](/docs/gentle-ai): what we recommend configuring on top, once you are connected.
+- [Examples](/docs/examples): snippets ready to copy in Python, Node.js and curl.
+- [API reference](/docs/api): every endpoint, field and error.
+- Support: `#support` on Discord, technical questions only.
