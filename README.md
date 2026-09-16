@@ -5,9 +5,9 @@
 Tu suscripción de [NaN](https://nan.builders) —cuotas, consumo, modelos, salud— sin salir de
 [Orca](https://www.onorca.dev), el IDE de agentes. Dos piezas que se complementan:
 
-- **`nan`**, un script de terminal (Python 3, sin dependencias).
+- **`nan-usage`**, un script de terminal (Python 3, sin dependencias).
 - **NaN Usage**, un plugin de Orca: comandos en la paleta, aviso cuando un modelo pasa del 80 %
-  justo al terminar un agente, y un panel que lanza `nan` en tu terminal.
+  justo al terminar un agente, y un panel que lanza `nan-usage` en tu terminal.
 
 > *Your NaN subscription (quotas, usage, models, health) inside Orca, the agent IDE. A terminal
 > script plus an Orca plugin. Spanish UI; the code is commented in Spanish too.*
@@ -15,41 +15,73 @@ Tu suscripción de [NaN](https://nan.builders) —cuotas, consumo, modelos, salu
 ## Requisitos
 
 - Suscripción de NaN con API key (tier *inference*).
-- La key en `~/.config/nan/api-key` (`chmod 600`) o en `$NAN_API_KEY`.
+- La key en cualquiera de estos sitios (se buscan en este orden): `$NAN_API_KEY`,
+  `~/.config/nan/api-key` (`chmod 600`), `~/.config/nan/env` (línea `NAN_API_KEY=…`) o el
+  `~/.config/nan/session.json` que deja el CLI oficial de NaN tras `nan auth login`. Si ya usas el
+  oficial, no hay nada que configurar.
 - Para el plugin: Orca ≥ 1.4 con **Settings → Plugins (Experimental)** activado.
 
-## `nan` — el script
+## Convivencia con el CLI oficial `nan`
+
+NaN publica su propio CLI, [`nan`](https://nan.builders/docs/nan-cli) (`curl -fsSL
+https://nan.builders/install | bash`). No compiten: hacen cosas distintas.
+
+| | CLI oficial `nan` | `nan-usage` (este repo) |
+|---|---|---|
+| Interfaz | TUI (Profile · Usage · Models · Costs · Setup · About) | subcomandos de una línea, `--json` |
+| Configurar herramientas | **Setup** escribe la config de OpenCode, Codex, Pi, droid y Hermes | snippets para pegar (`config env|opencode|pi|cursor|zed`) |
+| Consumo | `nan metrics usage` (JSON), `nan me` | `usage`, `billing` |
+| Cuota **por modelo** con reset y ventana 4h | no | `quota` |
+| Latencia y modelo que responde de verdad | no | `ping` |
+| Una línea para el prompt / statusline | no | `status` |
+| Orca | no | panel, ⌘J, aviso al 80 % |
+
+Hasta la versión 0.1.x este script también se llamaba `nan`. **Si tienes el symlink antiguo
+`~/.local/bin/nan`, bórralo** (`rm ~/.local/bin/nan`): tapa al oficial en el PATH y, si instalas
+el oficial con `INSTALL_DIR=$HOME/.local/bin`, lo sobrescribe sin avisar.
+
+## `nan-usage` — el script
 
 ```sh
-ln -s "$PWD/bin/nan" ~/.local/bin/nan     # o cualquier carpeta del PATH
+ln -s "$PWD/bin/nan-usage" ~/.local/bin/nan-usage     # o cualquier carpeta del PATH
 ```
 
 ```
-nan quota              cuota por modelo (usado / cap / reset)
-nan usage              consumo 24h · mes · 30d · total, por modelo
-nan models             modelos servidos ahora mismo + cuota + notas
-nan billing            estado de la suscripción
-nan ping [modelo...]   latencia al primer token y qué modelo ha servido de verdad
-nan status             una línea, para tu prompt o statusline
-nan config <destino>   snippet listo para pegar: env | opencode | pi | cursor | zed
-nan --json <cmd>       salida JSON cruda
+nan-usage quota              cuota por modelo (usado / cap / reset)
+nan-usage usage              consumo 24h · mes · 30d · total, por modelo
+nan-usage models             modelos servidos ahora mismo + cuota + notas
+nan-usage billing            estado de la suscripción
+nan-usage ping [modelo...]   latencia al primer token y qué modelo ha servido de verdad
+nan-usage status             una línea, para tu prompt o statusline
+nan-usage config <destino>   snippet listo para pegar: env | opencode | pi | cursor | zed
+nan-usage --json <cmd>       salida JSON cruda
 ```
 
 ```
-$ nan quota
+$ nan-usage quota
 periodo desde 2026-09-01
-  glm5.3-flash         █░░░░░░░░░░░░░░░░░░░   3.1%    15.5M / 500.0M reset 28d
-  qwen3.8-flash        ░░░░░░░░░░░░░░░░░░░░   0.2%     2.4M / 1.00B  reset 28d
-  glm5.2               ░░░░░░░░░░░░░░░░░░░░   0.0%        0 / 3.00B  reset 2d  ventana 4h: 400.0M
+  glm5.3-flash         ███████░░░░░░░░░░░░░  33.7%   674.4M / 2.00B  reset 14d
+  deepseek-v4-flash    ██████░░░░░░░░░░░░░░  29.2%   874.8M / 3.00B  reset 14d
+  qwen3.8-flash        █░░░░░░░░░░░░░░░░░░░   6.8%    34.0M / 500.0M reset 14d
+  glm5.3               ░░░░░░░░░░░░░░░░░░░░   0.0%        0 / 3.00B  reset 18d  ventana 4h: 400.0M
 
-$ nan ping
+$ nan-usage ping
   qwen3.8-flash        ok    1.10s primer token
   glm5.3-flash         ok    9.36s primer token
-  deepseek-v4-flash    ok    1.56s primer token
+  deepseek-v4-flash    ok    1.26s primer token
 ```
 
 `ping` avisa si el modelo que responde no es el que pediste (NaN puede degradar de modelo sin
-error). `config` genera los snippets con los modelos que hay *ahora*, no con una lista pegada.
+error). `config` genera los snippets con los modelos que hay *ahora*, no con una lista pegada, y
+recuerda que el CLI oficial ya configura OpenCode/Codex/Pi/droid/Hermes por sí solo. Ojo con
+`config pi`: si usas `@gtrabanco/pi-nan-provider`, el bloque `providers.nan` lo genera la extensión
+(o pi-fleet) con los `compat` que necesita; ni este snippet ni el Setup del oficial —que reemplaza
+`providers.nan` entero— deben pisarlo.
+
+`models` añade a cada modelo su ficha (contexto, modalidades, respuesta máxima, notas), tomada de
+`internal/models/models.go` del CLI oficial y de la doc de NaN. Un `—` en la columna de cuota
+significa que ese modelo no sale en `/usage/quota`: imagen, voz y embeddings van por un
+presupuesto aparte (`flux-2-klein`, por ejemplo, gasta 20 req/min y 100 req/mes, no tokens).
 
 ## NaN Usage — el plugin de Orca
 
@@ -57,7 +89,7 @@ error). `config` genera los snippets con los modelos que hay *ahora*, no con una
 |---|---|
 | ⌘J → «NaN: …» | **cuota por modelo** (⌘⌥U) · **consumo 24h / mes** · **modelos disponibles** · **suscripción** · **comprobar umbral 80 %** — como notificación de escritorio |
 | Automático | Cuando un agente pasa a `done`, mira la cuota (máx. 1 vez / 10 min) y avisa si algún modelo supera el 80 %. Un aviso por modelo y periodo |
-| Panel «NaN» (barra derecha) | Botones que escriben `nan quota`, `nan ping`, `nan config …` en la terminal que elijas |
+| Panel «NaN» (barra derecha) | Botones que escriben `nan-usage quota`, `nan-usage ping`, `nan-usage config …` en la terminal que elijas |
 
 ### Instalar (y que se actualice solo)
 
@@ -66,8 +98,10 @@ error). `config` genera los snippets con los modelos que hay *ahora*, no con una
    plugin y marketplace (lleva su propio `orca-marketplace.json`).
 3. Busca **NaN Usage** en la lista, *Install*, y acepta las capacidades que pide: `workspace:read`,
    `terminal:send`, `notifications:show`, `storage`, `events:subscribe`.
-4. Deja la key en `~/.config/nan/api-key` (`chmod 600`). El worker la lee de ahí porque su entorno
-   está saneado y no hereda variables.
+4. Deja la key en `~/.config/nan/api-key` (`chmod 600`), en `~/.config/nan/env` o inicia sesión con
+   el CLI oficial (`nan auth login`). El worker la lee de disco porque su entorno está saneado y no
+   hereda variables.
+5. Para los botones del panel, pon `bin/nan-usage` en el PATH (symlink de arriba).
 
 **Actualizar:** cuando haya versión nueva, en Settings → Plugins te aparecerá **Update** junto al
 plugin (Orca refresca el marketplace y compara). No hace falta desinstalar; solo vuelve a pedir
@@ -81,8 +115,9 @@ los ficheros y recarga sola al guardar; no lo tengas a la vez que la instalació
 El panel no puede hacer red ni conoce los nombres de tus terminales (la API v0 solo da su orden),
 y el orden de la lista no es el de tus pestañas), así que: pulsa **Identificar** y el panel escribe
 `# NaN -> terminal N` (sin Enter) en cada terminal del worktree. Mira tu terminal de shell, elige ese
-número en *Ejecutar en* y ya: cada botón escribe `nan …` ahí y pulsa Enter. La elección se recuerda
-por worktree. Las terminales de agentes suelen rechazar la escritura; si no, borra la marca con ⌃U.
+número en *Ejecutar en* y ya: cada botón escribe `nan-usage …` ahí y pulsa Enter. La elección se
+recuerda por worktree. Las terminales de agentes suelen rechazar la escritura; si no, borra la marca
+con ⌃U.
 
 El atajo ⌘⌥U solo dispara con el foco fuera de una terminal (dentro, Orca deja las teclas al PTY;
 usa ⌘J). Se puede cambiar en Settings → Shortcuts, grupo «Plugins».
@@ -90,7 +125,8 @@ usa ⌘J). Se puede cambiar en Settings → Shortcuts, grupo «Plugins».
 ## Cómo funciona (y por qué así)
 
 La misma API key de inferencia autentica `cloud-api.nan.builders`, el backend del panel web de
-NaN, que es donde viven cuotas, consumo y billing. Esas rutas no están documentadas: pueden cambiar.
+NaN, que es donde viven cuotas, consumo y billing. Esas rutas no están documentadas, aunque el CLI
+oficial de NaN ya usa las mismas (`/auth/me`, `/metrics/usage`, `/agents/models`): pueden cambiar.
 
 El sistema de plugins de Orca (v0) no tiene barra de estado, ni canal worker → panel, ni permiso de
 red declarable todavía. De ahí el reparto: el worker (Node, fuera de proceso) hace las llamadas y
@@ -99,10 +135,11 @@ habrá que declararlo y volver a consentir. Contexto completo y plan en [`docs/N
 
 ## Mantenimiento automático
 
-Una automatización de Orca (diaria, solo si algo cambió) corre `scripts/vigia.sh`, que compara la API de plugins de Orca y
-la doc/API de NaN con el snapshot en `docs/vigia/`, y si algo cambia (una capacidad nueva en Orca, un
-endpoint oficial de uso en NaN, modelos o cuotas) adapta el plugin en una rama y abre un PR. El criterio
-está en `docs/vigia/PROMPT.md`. Nunca publica nada por su cuenta.
+Una automatización de Orca (diaria, solo si algo cambió) corre `scripts/vigia.sh`, que compara la
+API de plugins de Orca, la doc/API de NaN y el CLI oficial (`helmcode/nan-cli`: release y ficha de
+modelos) con el snapshot en `docs/vigia/`, y si algo cambia (una capacidad nueva en Orca, un
+endpoint oficial de uso en NaN, modelos o cuotas) adapta el plugin en una rama y abre —o actualiza—
+un PR `vigia/*`. El criterio está en `docs/vigia/PROMPT.md`. Nunca publica nada por su cuenta.
 
 ## Desarrollo
 
