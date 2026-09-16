@@ -109,7 +109,7 @@
     <div class="howto" id="howto">
       <b>Cómo se usa.</b> Orca no le dice al plugin cómo se llaman tus terminales ni en qué orden están
       las pestañas. Pulsa <b>Identificar</b>: escribe <code># NaN -> terminal N</code> (sin Enter) en cada
-      una. Mira tu terminal de shell, elige ese número abajo y ya: cada botón escribe <code>nan …</code> ahí
+      una. Mira tu terminal de shell, elige ese número abajo y ya: cada botón escribe <code>nan-usage …</code> ahí
       y pulsa Enter. Se recuerda por worktree.
     </div>
 
@@ -126,36 +126,36 @@
     <section>
       <h2>Estado</h2>
       <div class="grid">
-        <button class="action" data-cmd="nan quota"><span class="t">Cuota</span><span class="d">por modelo, con reset</span></button>
-        <button class="action" data-cmd="nan usage"><span class="t">Consumo</span><span class="d">24h · mes · 30d</span></button>
-        <button class="action" data-cmd="nan models"><span class="t">Modelos</span><span class="d">servidos ahora + cuota</span></button>
-        <button class="action" data-cmd="nan billing"><span class="t">Suscripción</span><span class="d">plan, periodo, renovación</span></button>
+        <button class="action" data-cmd="nan-usage quota"><span class="t">Cuota</span><span class="d">por modelo, con reset</span></button>
+        <button class="action" data-cmd="nan-usage usage"><span class="t">Consumo</span><span class="d">24h · mes · 30d</span></button>
+        <button class="action" data-cmd="nan-usage models"><span class="t">Modelos</span><span class="d">servidos ahora + cuota</span></button>
+        <button class="action" data-cmd="nan-usage billing"><span class="t">Suscripción</span><span class="d">plan, periodo, renovación</span></button>
       </div>
     </section>
 
     <section>
       <h2>Diagnóstico</h2>
       <div class="grid">
-        <button class="action" data-cmd="nan ping"><span class="t">Ping</span><span class="d">latencia y modelo real</span></button>
-        <button class="action" data-cmd="nan status"><span class="t">Status</span><span class="d">una línea para el prompt</span></button>
+        <button class="action" data-cmd="nan-usage ping"><span class="t">Ping</span><span class="d">latencia y modelo real</span></button>
+        <button class="action" data-cmd="nan-usage status"><span class="t">Status</span><span class="d">una línea para el prompt</span></button>
       </div>
     </section>
 
     <section>
       <h2>Config para pegar</h2>
       <div class="chips">
-        <button class="action" data-cmd="nan config env"><span class="t">env</span></button>
-        <button class="action" data-cmd="nan config opencode"><span class="t">opencode</span></button>
-        <button class="action" data-cmd="nan config pi"><span class="t">pi</span></button>
-        <button class="action" data-cmd="nan config cursor"><span class="t">cursor</span></button>
-        <button class="action" data-cmd="nan config zed"><span class="t">zed</span></button>
+        <button class="action" data-cmd="nan-usage config env"><span class="t">env</span></button>
+        <button class="action" data-cmd="nan-usage config opencode"><span class="t">opencode</span></button>
+        <button class="action" data-cmd="nan-usage config pi"><span class="t">pi</span></button>
+        <button class="action" data-cmd="nan-usage config cursor"><span class="t">cursor</span></button>
+        <button class="action" data-cmd="nan-usage config zed"><span class="t">zed</span></button>
       </div>
     </section>
 
     <div class="status" id="status"></div>
 
     <footer>
-      <p>Cada botón escribe <code>nan …</code> en la terminal elegida y pulsa Enter. El panel no puede hacer red por sí mismo (CSP de Orca).</p>
+      <p>Cada botón escribe <code>nan-usage …</code> en la terminal elegida y pulsa Enter (el script de <code>bin/</code>, no el CLI oficial <code>nan</code>). El panel no puede hacer red por sí mismo (CSP de Orca).</p>
       <p>Avisos y comandos del worker: <kbd>⌘J</kbd> → «NaN: …», o <kbd>⌘⌥U</kbd> para la cuota (con el foco fuera de una terminal). Al terminar un agente avisa si algún modelo pasa del 80 %.</p>
     </footer>
 
