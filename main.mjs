@@ -1,24 +1,42 @@
 // Worker del plugin «NaN Usage» para Orca (pluginApi 1).
 // Corre en un proceso Node aparte con entorno saneado (solo PATH/HOME/…), así
-// que la key NO llega por env: se lee de ~/.config/nan/api-key, el mismo
-// fichero que usa el script `nan` de bin/. Una sola fuente de verdad.
+// que la key NO llega por env: se lee de disco en el mismo orden que el script
+// `nan-usage` de bin/ (menos $NAN_API_KEY, que aquí no existe): api-key →
+// env (pi-fleet) → session.json del CLI oficial de NaN.
 import { readFile } from 'node:fs/promises'
 import { homedir } from 'node:os'
 import { join } from 'node:path'
 
 const CLOUD_API = 'https://cloud-api.nan.builders'
-const KEY_FILE = join(homedir(), '.config', 'nan', 'api-key')
+const NAN_DIR = join(homedir(), '.config', 'nan')
+const KEY_FILE = join(NAN_DIR, 'api-key')
+const ENV_FILE = join(NAN_DIR, 'env') // pi-fleet: NAN_API_KEY=…
+const SESSION_FILE = join(NAN_DIR, 'session.json') // CLI oficial: { token, apiKey }
 const THRESHOLD = 0.8
 // No machacar con avisos: un check por cada N minutos tras un `done`, y un
 // aviso por modelo y periodo (se recuerda en storage).
 const CHECK_COOLDOWN_MS = 10 * 60_000
 const FETCH_TIMEOUT_MS = 15_000
 
+const readText = (path) => readFile(path, 'utf8').catch(() => '')
+
 async function readKey() {
-  const raw = await readFile(KEY_FILE, 'utf8').catch(() => '')
-  const key = raw.trim()
-  if (!key) throw new Error(`falta la API key en ${KEY_FILE}`)
-  return key
+  const fromFile = (await readText(KEY_FILE)).trim()
+  if (fromFile) return fromFile
+  const envLine = (await readText(ENV_FILE))
+    .split('\n')
+    .map((l) => l.trim().replace(/^export\s+/, ''))
+    .find((l) => l.startsWith('NAN_API_KEY='))
+  const fromEnv = envLine ? envLine.slice('NAN_API_KEY='.length).trim().replace(/^["']|["']$/g, '') : ''
+  if (fromEnv) return fromEnv
+  let fromSession = ''
+  try {
+    fromSession = String(JSON.parse((await readText(SESSION_FILE)) || '{}').apiKey ?? '').trim()
+  } catch {
+    fromSession = ''
+  }
+  if (fromSession) return fromSession
+  throw new Error(`falta la API key: ${KEY_FILE}, ${ENV_FILE} o ${SESSION_FILE} (CLI oficial: nan auth login)`)
 }
 
 async function api(path) {
@@ -43,10 +61,10 @@ const pct = (used, cap) => (cap > 0 ? used / cap : 0)
 const daysLeft = (iso) => Math.max(0, Math.ceil((new Date(iso).getTime() - Date.now()) / 86_400_000))
 
 function quotaLines(quota) {
-  // glm5.2 lleva ventana rodante de 4h además de la cuota mensual: la mostramos
-  // contra la ventana, que es la que un agente de código se come primero.
+  // El premium (glm5.3; antes glm5.2) lleva ventana rodante de 4h además de la
+  // cuota por periodo: se enseña siempre, es lo que un agente de código se come primero.
   return quota.models
-    .filter((m) => m.tokensUsed > 0 || m.model === 'glm5.2')
+    .filter((m) => m.tokensUsed > 0 || m.windowHours)
     .sort((a, b) => pct(b.tokensUsed, b.cap) - pct(a.tokensUsed, a.cap))
     .map((m) => {
       const p = Math.round(pct(m.tokensUsed, m.cap) * 100)
@@ -113,7 +131,7 @@ export default function activate(orca) {
     const end = s.currentPeriodEnd ? new Date(s.currentPeriodEnd * 1000) : null
     await notify(orca, 'NaN · suscripción', [
       `${me.handle} · tier ${me.tier} · región ${me.region}`,
-      `estado ${s.status ?? '?'}${s.premium ? ' · premium (glm5.2)' : ''} · ${(s.currency ?? '').toUpperCase()}`,
+      `estado ${s.status ?? '?'}${s.premium ? ' · premium (glm5.3)' : ''} · ${(s.currency ?? '').toUpperCase()}`,
       end ? `renueva ${end.toLocaleDateString('es-ES')} (${daysLeft(end)} días)` : 'sin periodo',
       s.cancelAtPeriodEnd ? '⚠ cancelación programada' : ''
     ].filter(Boolean))

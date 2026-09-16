@@ -1,18 +1,22 @@
 #!/usr/bin/env python3
-"""nan — la suscripción de NaN (nan.builders) desde la terminal.
+"""nan-usage — la suscripción de NaN (nan.builders) desde la terminal.
 
-  nan quota              cuota por modelo (usado / cap / reset)
-  nan usage              consumo 24h · mes · 30d · total, por modelo
-  nan models             modelos servidos ahora mismo + cuota + notas
-  nan billing            estado de la suscripción
-  nan ping [modelo...]   latencia real y qué modelo ha servido de verdad
-  nan status             una línea (para statusline / prompt)
-  nan config <destino>   snippet listo para pegar: env | opencode | pi | cursor | zed
-  nan --json <cmd>       salida JSON cruda
+  nan-usage quota              cuota por modelo (usado / cap / reset)
+  nan-usage usage              consumo 24h · mes · 30d · total, por modelo
+  nan-usage models             modelos servidos ahora mismo + cuota + notas
+  nan-usage billing            estado de la suscripción
+  nan-usage ping [modelo...]   latencia real y qué modelo ha servido de verdad
+  nan-usage status             una línea (para statusline / prompt)
+  nan-usage config <destino>   snippet listo para pegar: env | opencode | pi | cursor | zed
+  nan-usage --json <cmd>       salida JSON cruda
 
-Key: $NAN_API_KEY o ~/.config/nan/api-key. La misma key sirve para la API de
-inferencia (api.nan.builders/v1) y para el backend del panel
-(cloud-api.nan.builders), que es de donde salen cuotas y billing.
+No es el CLI oficial de NaN (`nan`, https://nan.builders/docs/nan-cli): ese
+trae la TUI y el Setup de herramientas; este da cuota por modelo, ping y status.
+
+Key, en este orden: $NAN_API_KEY · ~/.config/nan/api-key · ~/.config/nan/env
+(NAN_API_KEY=…) · ~/.config/nan/session.json del CLI oficial (campo apiKey).
+La misma key sirve para la API de inferencia (api.nan.builders/v1) y para el
+backend del panel (cloud-api.nan.builders), de donde salen cuotas y billing.
 """
 import json
 import os
@@ -25,44 +29,91 @@ from datetime import datetime, timezone
 INFERENCE = "https://api.nan.builders/v1"
 CLOUD = "https://cloud-api.nan.builders"
 KEY_FILE = os.path.expanduser("~/.config/nan/api-key")
+ENV_FILE = os.path.expanduser("~/.config/nan/env")            # pi-fleet: NAN_API_KEY=…
+SESSION_FILE = os.path.expanduser("~/.config/nan/session.json")  # CLI oficial: {"token", "apiKey"}
 
-# Ficha por modelo según la doc de NaN (snapshot 2026-09). Solo se usa para los
-# snippets de config y las notas de `models`; lo vivo (qué modelos hay, cuotas)
-# sale de la API. Si un modelo no está aquí, se generan valores conservadores.
+# Ficha por modelo. Fuente: internal/models/models.go del CLI oficial
+# (helmcode/nan-cli, medido por NaN el 2026-09-11) y la doc nan.builders/docs/models
+# (2026-09-16). Solo se usa para los snippets de config y las notas de `models`;
+# lo vivo (qué modelos hay, cuotas) sale de la API. Si un modelo no está aquí,
+# se generan valores conservadores. "max" = respuesta máxima que un cliente debe
+# planificar ("Output" del CLI oficial / "Max answer" de la doc); sin él, 16K.
 MODEL_NOTES = {
-    "qwen3.6": {"name": "Qwen 3.6", "ctx": 262144, "input": ["text", "image"], "note": "multimodal, reasoning"},
-    "gemma4": {"name": "Gemma 4", "ctx": 262144, "input": ["text", "image"], "note": "multimodal"},
-    "deepseek-v4-flash": {"name": "DeepSeek V4 Flash", "ctx": 500000, "input": ["text"], "note": "solo texto, 1M ctx según doc"},
-    "mimo-v2.5": {"name": "Xiaomi MiMo V2.5", "ctx": 500000, "input": ["text", "image", "audio"], "note": "omnimodal"},
-    "glm5.2": {"name": "GLM 5.2", "ctx": 500000, "input": ["text"], "note": "premium · usar stream:true · ventana 4h"},
-    "glm5.3-flash": {"name": "GLM 5.3 Flash", "ctx": 262144, "input": ["text"], "note": "reasoning por defecto (verboso)"},
-    "qwen3.8-flash": {"name": "Qwen 3.8 Flash", "ctx": 262144, "input": ["text"], "note": ""},
+    "deepseek-v4-flash": {"name": "DeepSeek V4 Flash", "ctx": 1048575, "max": 32768, "input": ["text", "image"], "note": "reasoning · vision (Vision-Exp) · el recomendado para empezar"},
+    "glm5.3-flash": {"name": "GLM 5.3 Flash", "ctx": 1048576, "max": 32768, "input": ["text", "image"], "note": "reasoning por defecto (verboso) · el de código sin premium"},
+    "qwen3.8-flash": {"name": "Qwen 3.8 Flash", "ctx": 262144, "max": 32768, "input": ["text", "image"], "note": "reasoning por defecto · respuesta máx 131K según doc"},
+    "mimo-v2.5": {"name": "Xiaomi MiMo V2.5", "ctx": 1048576, "max": 32768, "input": ["text", "image", "audio"], "note": "omnimodal · respuesta máx 131K según doc · max_tokens ≥ 300 con reasoning"},
+    "gemma4": {"name": "Gemma 4", "ctx": 262144, "max": 65536, "input": ["text", "image"], "note": "multimodal"},
+    "qwen3.6": {"name": "Qwen 3.6", "ctx": 262144, "max": 65536, "input": ["text", "image"], "note": "generación anterior (doc: empieza por deepseek-v4-flash)"},
+    "glm5.3": {"name": "GLM 5.3 (premium)", "ctx": 1048576, "max": 32768, "input": ["text"], "note": "premium · solo texto · 3B/periodo de facturación · ventana 4h 400M"},
+    "minimax-h3": {"name": "MiniMax H3", "ctx": 0, "input": ["text"], "note": "sin ficha en la doc ni en el CLI oficial: valores conservadores"},
     "qwen3-embedding": {"name": "Qwen3 Embedding", "ctx": 0, "input": ["text"], "note": "embeddings 4096d"},
     "rerank": {"name": "Rerank", "ctx": 0, "input": ["text"], "note": "reranker"},
     "whisper": {"name": "Whisper", "ctx": 0, "input": ["audio"], "note": "STT (25 MB máx)"},
     "kokoro": {"name": "Kokoro", "ctx": 0, "input": ["text"], "note": "TTS"},
-    "flux-2-klein": {"name": "Flux 2 Klein", "ctx": 0, "input": ["text"], "note": "imagen · 100 req/mes"},
+    "flux-2-klein": {"name": "Flux 2 Klein", "ctx": 0, "input": ["text", "image"], "note": "imagen · 20 req/min · 100 req/mes (presupuesto aparte: no gasta cuota de tokens)"},
 }
+# glm5.2 (2026-09-16): ya no sale en /v1/models ni en la doc; lo sustituye glm5.3.
+# Sigue apareciendo en /api/usage/quota con cap y ventana 4h: se muestra tal cual.
 CHAT_EXCLUDE = {"qwen3-embedding", "rerank", "whisper", "kokoro", "flux-2-klein"}
 
 
 def die(msg, code=1):
-    print(f"nan: {msg}", file=sys.stderr)
+    print(f"nan-usage: {msg}", file=sys.stderr)
     sys.exit(code)
 
 
+def _read(path):
+    try:
+        with open(path) as f:
+            return f.read()
+    except OSError:
+        return ""
+
+
+def key_from_env_file(path=None):
+    path = path or ENV_FILE
+    # Fichero de shell con `NAN_API_KEY=…` o `export NAN_API_KEY=…` (pi-fleet).
+    for line in _read(path).splitlines():
+        line = line.strip()
+        if line.startswith("export "):
+            line = line[7:].strip()
+        if line.startswith("NAN_API_KEY="):
+            return line.split("=", 1)[1].strip().strip("'\"")
+    return ""
+
+
+def key_from_session(path=None):
+    path = path or SESSION_FILE
+    # ~/.config/nan/session.json del CLI oficial (internal/session/session.go):
+    # {"token": …, "apiKey": …}. Solo nos vale la apiKey; el token es de su login.
+    try:
+        return str(json.loads(_read(path) or "{}").get("apiKey") or "").strip()
+    except (json.JSONDecodeError, AttributeError):
+        return ""
+
+
+def key_source():
+    if os.environ.get("NAN_API_KEY", "").strip():
+        return "$NAN_API_KEY"
+    for path, found in ((KEY_FILE, _read(KEY_FILE).strip()), (ENV_FILE, key_from_env_file()), (SESSION_FILE, key_from_session())):
+        if found:
+            return path
+    return "?"
+
+
 def key():
-    k = os.environ.get("NAN_API_KEY", "").strip()
-    if not k and os.path.exists(KEY_FILE):
-        k = open(KEY_FILE).read().strip()
+    k = (os.environ.get("NAN_API_KEY", "").strip() or _read(KEY_FILE).strip()
+         or key_from_env_file() or key_from_session())
     if not k:
-        die(f"falta la API key: exporta NAN_API_KEY o escríbela en {KEY_FILE} (chmod 600)")
+        die(f"falta la API key: exporta NAN_API_KEY, escríbela en {KEY_FILE} (chmod 600), "
+            f"o inicia sesión con el CLI oficial (`nan auth login`), que la deja en {SESSION_FILE}")
     return k
 
 
 # Cloudflare devuelve 403 al User-Agent por defecto de urllib; curl y Node pasan.
 def HEADERS():
-    return {"Authorization": f"Bearer {key()}", "User-Agent": "nan-cli/0.1 (+orca-nan)"}
+    return {"Authorization": f"Bearer {key()}", "User-Agent": "nan-usage/0.2 (+https://github.com/rub3n88/orca-nan)"}
 
 
 def get(base, path, timeout=20):
@@ -144,10 +195,10 @@ def cmd_models(as_json):
         n = MODEL_NOTES.get(mid, {})
         q = quota.get(mid)
         cuota = f"{fmt(q['tokensUsed'])}/{fmt(q['cap'])}" if q else "—"
-        ctx = f"{n['ctx'] // 1000}K ctx" if n.get("ctx") else ""
+        ctx = ("1M ctx" if n["ctx"] >= 1_000_000 else f"{n['ctx'] // 1000}K ctx") if n.get("ctx") else ""
         tag = "" if mid in MODEL_NOTES else "  (no documentado en la ficha local)"
         print(f"  {mid:<20} {cuota:<14} {ctx:<9} {','.join(n.get('input', []))!s:<17} {n.get('note', '')}{tag}")
-    print("cuotas/ctx: nan.builders/docs/models manda si esto discrepa.")
+    print("cuotas/ctx: nan.builders/docs/models manda si esto discrepa. — no salen en /usage/quota: imagen, voz, embeddings (presupuesto aparte).")
 
 
 def cmd_billing(as_json):
@@ -159,7 +210,7 @@ def cmd_billing(as_json):
     start = datetime.fromtimestamp(s.get("currentPeriodStart", 0), tz=timezone.utc).date()
     end = datetime.fromtimestamp(s.get("currentPeriodEnd", 0), tz=timezone.utc).date()
     print(f"{me.get('handle')} · tier {me.get('tier')} · región {me.get('region')} · namespace {me.get('namespace')}")
-    print(f"suscripción {s.get('status')} · {str(s.get('currency', '')).upper()} · premium(glm5.2): {'sí' if s.get('premium') else 'no'}")
+    print(f"suscripción {s.get('status')} · {str(s.get('currency', '')).upper()} · premium (glm5.3): {'sí' if s.get('premium') else 'no'}")
     print(f"periodo {start} → {end} ({days_left(s.get('currentPeriodEnd', 0))} días)")
     if s.get("cancelAtPeriodEnd"):
         print("⚠ cancelación programada al final del periodo")
@@ -230,17 +281,36 @@ def chat_models():
     return [m for m in sorted(live) if m not in CHAT_EXCLUDE]
 
 
+OFFICIAL_SETUP = ("# El CLI oficial de NaN (`nan` → pestaña Setup) configura OpenCode, Codex, Pi, droid y "
+                  "Hermes por sí solo; estos snippets son para el resto o para revisar a mano.")
+PI_WARNING = """# ⚠ Si usas @gtrabanco/pi-nan-provider (pi-fleet), NO pegues este bloque ni uses el Setup del
+# CLI oficial: el bloque `providers.nan` lo genera la extensión/pi-fleet con los `compat` que
+# necesita (supportsReasoningEffort, supportsFinishReason, maxTokensField) y el Setup oficial
+# reemplaza `providers.nan` entero y los pisa. Este snippet es para pi *sin* esa extensión."""
+
+
 def cmd_config(as_json, args):
     target = (args or ["help"])[0]
+    if target not in ("env", "opencode", "pi", "cursor", "zed"):
+        print("destinos: env | opencode | pi | cursor | zed\n(Claude Code no: NaN es OpenAI-compatible, no habla el protocolo Anthropic)")
+        print(OFFICIAL_SETUP)
+        return
     k = key()
     masked = k[:6] + "…" + k[-4:]
+    src = key_source()
+    print(OFFICIAL_SETUP)
     if target == "env":
         print(f'export OPENAI_BASE_URL="{INFERENCE}"')
-        print(f'export OPENAI_API_KEY="$(cat {KEY_FILE})"   # {masked}')
+        if src == "$NAN_API_KEY":
+            print('export OPENAI_API_KEY="$NAN_API_KEY"')
+        elif src == KEY_FILE:
+            print(f'export OPENAI_API_KEY="$(cat {KEY_FILE})"   # {masked}')
+        else:
+            print(f'export OPENAI_API_KEY="{masked}"   # pega la key entera (origen: {src})')
         print("# Cline / Continue / Aider / cualquier SDK OpenAI-compatible")
         return
     if target == "cursor":
-        print(f"Cursor → Settings → Models → OpenAI API:\n  Base URL: {INFERENCE}\n  API Key:  {masked}  (cat {KEY_FILE})")
+        print(f"Cursor → Settings → Models → OpenAI API:\n  Base URL: {INFERENCE}\n  API Key:  {masked}  (origen: {src})")
         print("  Modelos a añadir a mano:", ", ".join(chat_models()))
         return
     models = chat_models()
@@ -267,9 +337,11 @@ def cmd_config(as_json, args):
             "models": [{
                 "id": m, "name": MODEL_NOTES.get(m, {}).get("name", m), "reasoning": True,
                 "input": MODEL_NOTES.get(m, {}).get("input", ["text"]),
-                "contextWindow": MODEL_NOTES.get(m, {}).get("ctx") or 131072, "maxTokens": 16384,
+                "contextWindow": MODEL_NOTES.get(m, {}).get("ctx") or 131072,
+                "maxTokens": MODEL_NOTES.get(m, {}).get("max") or 16384,
             } for m in models],
         }}}
+        print(PI_WARNING)
         print("# ~/.pi/agent/models.json  (lleva la key en claro: chmod 600)")
         print(json.dumps(models_json, indent=2, ensure_ascii=False))
         print("\n# ~/.pi/agent/settings.json")
@@ -281,7 +353,6 @@ def cmd_config(as_json, args):
         print("# ~/.config/zed/settings.json (la key va en el asistente de Zed, no aquí)")
         print(json.dumps(cfg, indent=2))
         return
-    print("destinos: env | opencode | pi | cursor | zed\n(Claude Code no: NaN es OpenAI-compatible, no habla el protocolo Anthropic)")
 
 
 def main(argv):

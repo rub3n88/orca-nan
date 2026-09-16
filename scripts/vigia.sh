@@ -41,20 +41,38 @@ curl -sL --max-time 20 https://www.onorca.dev/docs/agents/usage-tracking | html2
 defaults read /Applications/Orca.app/Contents/Info.plist CFBundleShortVersionString 2>/dev/null > "$TMP/orca-installed-version.txt" || echo "?" > "$TMP/orca-installed-version.txt"
 
 # ---------------------------------------------------------------- NaN
-say "NaN: doc pública desde su fuente (helmcode/nan: models.mdx, getting-started.md, openapi.json)"
-NAN_RAW=https://raw.githubusercontent.com/helmcode/nan/main
-curl -sfL --max-time 20 "$NAN_RAW/src/content/docs/models.mdx" -o "$TMP/nan-docs-models.mdx" || echo "  (no pude bajar models.mdx)"
-curl -sfL --max-time 20 "$NAN_RAW/src/content/docs/getting-started.md" -o "$TMP/nan-docs-getting-started.md" || true
-curl -sfL --max-time 20 "$NAN_RAW/src/content/docs/examples.md" -o "$TMP/nan-docs-examples.md" || true
-# openapi.json es la referencia de la API: aquí aparecería un endpoint oficial de uso/cuota.
-curl -sfL --max-time 20 "$NAN_RAW/src/data/openapi.json" | python3 -c '
+# Descarga con aviso: si una fuente deja de existir (renombrada, retirada) el
+# fichero no se crea y más abajo sale como «DESAPARECE», en vez de callarse.
+fetch() { curl -sfL --max-time 20 "$1" -o "$2" || echo "  (no pude bajar $1)"; }
+say "NaN: doc publicada (nan.builders/api/docs: manifest con hash por página + páginas en markdown)"
+NAN_DOCS=https://nan.builders/api/docs
+# manifest.json: slug + contentHash de cada página. Un hash que cambia dice QUÉ página tocaron.
+curl -sfL --max-time 20 "$NAN_DOCS/manifest.json" -o "$TMP/manifest.json" \
+  && python3 -c '
 import json,sys
-try:
-    d=json.load(sys.stdin)
-    for p,ops in sorted(d.get("paths",{}).items()):
-        for m,op in ops.items():
-            if isinstance(op,dict): print(m.upper(), p, "-", (op.get("summary") or op.get("operationId") or "")[:80])
-except Exception as e: print("error", e)' > "$TMP/nan-openapi-paths.txt" || true
+d=json.load(open(sys.argv[1]))
+for e in sorted(d.get("entries",[]), key=lambda e: e.get("slug","")): print(e.get("slug"), e.get("contentHash"))' "$TMP/manifest.json" > "$TMP/nan-docs-manifest.txt" \
+  || echo "  (no pude bajar manifest.json)"
+for slug in models choose-a-model nan-cli getting-started; do fetch "$NAN_DOCS/$slug.md" "$TMP/nan-docs-$slug.md"; done
+say "NaN: fuente de la doc (helmcode/nan: models.mdx, openapi.json)"
+NAN_RAW=https://raw.githubusercontent.com/helmcode/nan/main
+fetch "$NAN_RAW/src/content/docs/models.mdx" "$TMP/nan-docs-models.mdx"
+# openapi.json es la referencia de la API: aquí aparecería un endpoint oficial de uso/cuota.
+if curl -sfL --max-time 20 "$NAN_RAW/src/data/openapi.json" -o "$TMP/openapi.json"; then
+  python3 -c '
+import json,sys
+d=json.load(open(sys.argv[1]))
+for p,ops in sorted(d.get("paths",{}).items()):
+    for m,op in ops.items():
+        if isinstance(op,dict): print(m.upper(), p, "-", (op.get("summary") or op.get("operationId") or "")[:80])' "$TMP/openapi.json" > "$TMP/nan-openapi-paths.txt"
+else echo "  (no pude bajar openapi.json)"; fi
+say "NaN: CLI oficial (helmcode/nan-cli: último release y ficha de modelos)"
+# El tag del release es la señal de que hay que mirar su changelog (session.json, endpoints, Setup).
+gh api repos/helmcode/nan-cli/releases/latest --jq '.tag_name + " " + .published_at' 2>/dev/null > "$TMP/nan-cli-release.txt" \
+  || curl -sfL --max-time 20 https://api.github.com/repos/helmcode/nan-cli/releases/latest | python3 -c 'import json,sys; d=json.load(sys.stdin); print(d["tag_name"], d["published_at"])' > "$TMP/nan-cli-release.txt" 2>/dev/null \
+  || echo "  (no pude leer el último release de nan-cli)"
+# internal/models/models.go: la ficha de modelos que NaN mantiene (contexto, output, modalidades, premium).
+fetch https://raw.githubusercontent.com/helmcode/nan-cli/main/internal/models/models.go "$TMP/nan-cli-models.go"
 say "NaN: rutas del backend cloud-api (bundle del SPA) y forma de las respuestas"
 idx=$(curl -sL --max-time 20 https://cloud.nan.builders/ | grep -o '/assets/index-[A-Za-z0-9_-]*\.js' | head -1)
 if [ -n "$idx" ]; then
@@ -71,13 +89,17 @@ def walk(o,p=""):
     else: print(p, type(o).__name__)
 try: walk(json.load(sys.stdin))
 except Exception as e: print("error", e)'; }
-if command -v nan >/dev/null 2>&1; then
-  nan --json quota 2>/dev/null | shape > "$TMP/nan-shape-quota.txt"
-  nan --json usage 2>/dev/null | shape | grep -v '^\.timeSeries' > "$TMP/nan-shape-usage.txt"
-  nan --json billing 2>/dev/null | shape > "$TMP/nan-shape-billing.txt"
-  nan --json models 2>/dev/null | python3 -c 'import json,sys; print("\n".join(sorted(json.load(sys.stdin)["models"])))' > "$TMP/nan-models-live.txt" 2>/dev/null
+# Nuestro script, por ruta: `nan` a secas en el PATH es (o será) el CLI oficial de NaN.
+NU="$ROOT/bin/nan-usage"
+if "$NU" --json quota > "$TMP/quota.json" 2>/dev/null; then
+  shape < "$TMP/quota.json" > "$TMP/nan-shape-quota.txt"
+  "$NU" --json usage 2>/dev/null | shape | grep -v '^\.timeSeries' > "$TMP/nan-shape-usage.txt"
+  "$NU" --json billing 2>/dev/null | shape > "$TMP/nan-shape-billing.txt"
+  "$NU" --json models 2>/dev/null | python3 -c 'import json,sys; print("\n".join(sorted(json.load(sys.stdin)["models"])))' > "$TMP/nan-models-live.txt" 2>/dev/null
   # Cuotas (cap por modelo): son parte del contrato, no datos personales.
-  nan --json quota 2>/dev/null | python3 -c 'import json,sys; [print(m["model"], m["cap"], "window" if m.get("windowHours") else "") for m in sorted(json.load(sys.stdin)["models"], key=lambda m: m["model"])]' > "$TMP/nan-quota-caps.txt" 2>/dev/null
+  python3 -c 'import json,sys; [print(m["model"], m["cap"], "window" if m.get("windowHours") else "") for m in sorted(json.load(sys.stdin)["models"], key=lambda m: m["model"])]' < "$TMP/quota.json" > "$TMP/nan-quota-caps.txt" 2>/dev/null
+else
+  echo "  (nan-usage no pudo leer la cuota: sin key o sin red; se saltan shape-*, models-live y quota-caps)"
 fi
 
 # ---------------------------------------------------------------- comparar
@@ -98,6 +120,14 @@ for f in "$TMP"/orca-* "$TMP"/nan-*; do
     [ $info -eq 1 ] || changed=1; echo "--- NUEVO: $dir/${name#*-} ($(wc -l < "$f") líneas)"
   fi
   [ $CHECK -eq 1 ] || cp "$f" "$dest"
+done
+# Snapshots sin fuente hoy: la URL murió (renombrado, retirado) o no hubo red. Antes se callaba.
+for dest in "$OUT"/orca/* "$OUT"/nan/*; do
+  [ -f "$dest" ] || continue
+  dir=$(basename "$(dirname "$dest")"); name=$(basename "$dest")
+  [ -s "$TMP/$dir-$name" ] && continue
+  case "$name" in shape-*|models-live.txt|quota-caps.txt) [ -s "$TMP/quota.json" ] || continue;; esac
+  changed=1; echo "--- DESAPARECE: $dir/$name (la fuente no ha bajado hoy; ¿renombrada o retirada?)"
 done
 [ $changed -eq 0 ] && echo "  sin cambios"
 echo
