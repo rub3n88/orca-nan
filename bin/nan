@@ -30,18 +30,18 @@ KEY_FILE = os.path.expanduser("~/.config/nan/api-key")
 # snippets de config y las notas de `models`; lo vivo (qué modelos hay, cuotas)
 # sale de la API. Si un modelo no está aquí, se generan valores conservadores.
 MODEL_NOTES = {
-    "qwen3.6": {"name": "Qwen 3.6", "ctx": 262144, "input": ["text", "image"], "note": "multimodal, reasoning"},
+    "qwen3.6": {"name": "Qwen 3.6", "ctx": 262144, "input": ["text", "image"], "note": "generación anterior (doc: empieza por deepseek-v4-flash)"},
     "gemma4": {"name": "Gemma 4", "ctx": 262144, "input": ["text", "image"], "note": "multimodal"},
     "deepseek-v4-flash": {"name": "DeepSeek V4 Flash", "ctx": 500000, "input": ["text"], "note": "solo texto, 1M ctx según doc"},
-    "mimo-v2.5": {"name": "Xiaomi MiMo V2.5", "ctx": 500000, "input": ["text", "image", "audio"], "note": "omnimodal"},
+    "mimo-v2.5": {"name": "Xiaomi MiMo V2.5", "ctx": 500000, "input": ["text", "image", "audio"], "note": "omnimodal · respuesta máx 131K"},
     "glm5.2": {"name": "GLM 5.2", "ctx": 500000, "input": ["text"], "note": "premium · usar stream:true · ventana 4h"},
     "glm5.3-flash": {"name": "GLM 5.3 Flash", "ctx": 262144, "input": ["text"], "note": "reasoning por defecto (verboso)"},
-    "qwen3.8-flash": {"name": "Qwen 3.8 Flash", "ctx": 262144, "input": ["text"], "note": ""},
+    "qwen3.8-flash": {"name": "Qwen 3.8 Flash", "ctx": 262144, "input": ["text", "image"], "note": "respuesta máx 131K"},
     "qwen3-embedding": {"name": "Qwen3 Embedding", "ctx": 0, "input": ["text"], "note": "embeddings 4096d"},
     "rerank": {"name": "Rerank", "ctx": 0, "input": ["text"], "note": "reranker"},
     "whisper": {"name": "Whisper", "ctx": 0, "input": ["audio"], "note": "STT (25 MB máx)"},
     "kokoro": {"name": "Kokoro", "ctx": 0, "input": ["text"], "note": "TTS"},
-    "flux-2-klein": {"name": "Flux 2 Klein", "ctx": 0, "input": ["text"], "note": "imagen · 100 req/mes"},
+    "flux-2-klein": {"name": "Flux 2 Klein", "ctx": 0, "input": ["text", "image"], "note": "imagen · 20 req/min · 100 req/mes, aparte de la cuota de tokens"},
 }
 CHAT_EXCLUDE = {"qwen3-embedding", "rerank", "whisper", "kokoro", "flux-2-klein"}
 

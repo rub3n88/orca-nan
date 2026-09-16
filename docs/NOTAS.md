@@ -71,6 +71,16 @@ Fuente: `stablyai/orca` en GitHub (`src/shared/plugins/*`, `src/main/plugins/*`,
   manda UA propio.
 - Latencias medidas (primer token, 2026-09-02): qwen3.8-flash 1,1 s · deepseek-v4-flash 1,6 s ·
   glm5.3-flash 9,4 s (reasoning por defecto).
+- 2026-09-13: NaN publica un CLI oficial que también se llama `nan` (`helmcode/nan-cli`, Go) y que
+  usa `cloud-api` (`/auth/me`, `/metrics/usage`, `/agents/models`) con cookie de Discord. Análisis y
+  opciones (renombrar / convivir) en `docs/vigia/informe-2026-09-13.md`; decisión pendiente.
+- 2026-09-16: la doc de modelos marca **qwen3.6 como «generación anterior»** (sigue respondiendo;
+  recomiendan arrancar por deepseek-v4-flash), añade «Max answer 131K» a qwen3.8-flash y mimo-v2.5
+  y publica los ejemplos de imágenes de flux-2-klein (`/v1/images/generations` y `/images/edits`:
+  20 req/min y 100/mes con presupuesto propio, fuera de la cuota de tokens). Recogido en
+  `MODEL_NOTES`. Pendiente de contrastar: la doc da 1M de contexto e imagen de entrada a
+  deepseek-v4-flash, glm5.3-flash y mimo-v2.5, y `MODEL_NOTES` sigue con 500K/texto (medido en
+  septiembre).
 
 ## Decisiones
 
