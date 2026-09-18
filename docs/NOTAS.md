@@ -83,6 +83,14 @@ Fuente: `stablyai/orca` en GitHub (`src/shared/plugins/*`, `src/main/plugins/*`,
   (`/docs/models`) añade «Max answer 131K» a qwen3.8-flash y mimo-v2.5 (`max` en `MODEL_NOTES` usa
   el `Output` del CLI, más conservador). Contrastado en vivo el 2026-09-16: deepseek, glm5.3-flash,
   qwen3.8-flash, gemma4 y qwen3.6 aceptan `image_url` (mimo también acepta la petición).
+- **Razonamiento por modelo (2026-09-18)**: la doc (`/docs/models` §«Controlling reasoning» y la fila
+  `reasoning_effort` de `/docs/api`) ya publica el contrato de `reasoning_effort`: `glm5.3` y
+  `glm5.3-flash` `low|medium|high|max`; `qwen3.6` y `gemma4` además `none`/`minimal` y topes de
+  2.048/8.192/16.384/32.768 tokens (por defecto on, 16.384); `deepseek-v4-flash` razona adaptativo e
+  ignora el parámetro; `qwen3.8-flash` y `mimo-v2.5` lo aceptan sin ajustar profundidad. Un valor no
+  aplicable **no** da error y la traza va en `message.reasoning_content`. Está en `MODEL_NOTES`
+  (campo `effort`), lo imprime `nan-usage models` y sale como `reasoningEffort` en `--json models`.
+  No cambia nada de cuotas: `models-live.txt`, `quota-caps.txt` y `cli-models.go` no se movieron.
 - **glm5.2 ha desaparecido** de `/v1/models` y de la doc (2026-09-16); el premium es ahora
   **glm5.3** (3B por periodo de facturación + ventana 4h 400M). `/api/usage/quota` sigue listando
   glm5.2 con cap y ventana: el script lo muestra tal cual, sin ficha. `minimax-h3` sale en

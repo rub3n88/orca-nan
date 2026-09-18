@@ -39,13 +39,13 @@ SESSION_FILE = os.path.expanduser("~/.config/nan/session.json")  # CLI oficial: 
 # se generan valores conservadores. "max" = respuesta máxima que un cliente debe
 # planificar ("Output" del CLI oficial / "Max answer" de la doc); sin él, 16K.
 MODEL_NOTES = {
-    "deepseek-v4-flash": {"name": "DeepSeek V4 Flash", "ctx": 1048575, "max": 32768, "input": ["text", "image"], "note": "reasoning · vision (Vision-Exp) · el recomendado para empezar"},
-    "glm5.3-flash": {"name": "GLM 5.3 Flash", "ctx": 1048576, "max": 32768, "input": ["text", "image"], "note": "reasoning por defecto (verboso) · el de código sin premium"},
-    "qwen3.8-flash": {"name": "Qwen 3.8 Flash", "ctx": 262144, "max": 32768, "input": ["text", "image"], "note": "reasoning por defecto · respuesta máx 131K según doc"},
-    "mimo-v2.5": {"name": "Xiaomi MiMo V2.5", "ctx": 1048576, "max": 32768, "input": ["text", "image", "audio"], "note": "omnimodal · respuesta máx 131K según doc · max_tokens ≥ 300 con reasoning"},
-    "gemma4": {"name": "Gemma 4", "ctx": 262144, "max": 65536, "input": ["text", "image"], "note": "multimodal"},
-    "qwen3.6": {"name": "Qwen 3.6", "ctx": 262144, "max": 65536, "input": ["text", "image"], "note": "generación anterior (doc: empieza por deepseek-v4-flash)"},
-    "glm5.3": {"name": "GLM 5.3 (premium)", "ctx": 1048576, "max": 32768, "input": ["text"], "note": "premium · solo texto · 3B/periodo de facturación · ventana 4h 400M"},
+    "deepseek-v4-flash": {"name": "DeepSeek V4 Flash", "ctx": 1048575, "max": 32768, "input": ["text", "image"], "effort": "se ignora (el modelo decide por petición)", "note": "reasoning · vision (Vision-Exp) · el recomendado para empezar"},
+    "glm5.3-flash": {"name": "GLM 5.3 Flash", "ctx": 1048576, "max": 32768, "input": ["text", "image"], "effort": "low·medium·high·max", "note": "reasoning verboso por defecto · el de código sin premium"},
+    "qwen3.8-flash": {"name": "Qwen 3.8 Flash", "ctx": 262144, "max": 32768, "input": ["text", "image"], "effort": "se acepta, profundidad no ajustable", "note": "reasoning por defecto · respuesta máx 131K según doc"},
+    "mimo-v2.5": {"name": "Xiaomi MiMo V2.5", "ctx": 1048576, "max": 32768, "input": ["text", "image", "audio"], "effort": "se acepta, profundidad no ajustable", "note": "omnimodal · respuesta máx 131K según doc · max_tokens ≥ 300 con reasoning"},
+    "gemma4": {"name": "Gemma 4", "ctx": 262144, "max": 65536, "input": ["text", "image"], "effort": "none·minimal·low…max (2K–32K)", "note": "multimodal · reasoning on por defecto (16K)"},
+    "qwen3.6": {"name": "Qwen 3.6", "ctx": 262144, "max": 65536, "input": ["text", "image"], "effort": "none·minimal·low…max (2K–32K)", "note": "generación anterior (doc: empieza por deepseek-v4-flash)"},
+    "glm5.3": {"name": "GLM 5.3 (premium)", "ctx": 1048576, "max": 32768, "input": ["text"], "effort": "low·medium·high·max", "note": "premium · solo texto · 3B/periodo de facturación · ventana 4h 400M"},
     "minimax-h3": {"name": "MiniMax H3", "ctx": 0, "input": ["text"], "note": "sin ficha en la doc ni en el CLI oficial: valores conservadores"},
     "qwen3-embedding": {"name": "Qwen3 Embedding", "ctx": 0, "input": ["text"], "note": "embeddings 4096d"},
     "rerank": {"name": "Rerank", "ctx": 0, "input": ["text"], "note": "reranker"},
@@ -55,6 +55,9 @@ MODEL_NOTES = {
 }
 # glm5.2 (2026-09-16): ya no sale en /v1/models ni en la doc; lo sustituye glm5.3.
 # Sigue apareciendo en /api/usage/quota con cap y ventana 4h: se muestra tal cual.
+# `effort` (doc de 2026-09-18, /docs/models «Controlling reasoning» y /docs/api): qué hace cada
+# modelo con `reasoning_effort`. Un valor que un modelo no aplica nunca da error, solo se ignora.
+# La traza de razonamiento llega aparte, en `message.reasoning_content`.
 CHAT_EXCLUDE = {"qwen3-embedding", "rerank", "whisper", "kokoro", "flux-2-klein"}
 
 
@@ -189,7 +192,8 @@ def cmd_models(as_json):
     quota = {m["model"]: m for m in get(CLOUD, "/api/usage/quota")["models"]}
     modes = {m["name"]: m.get("mode", "") for m in get(CLOUD, "/api/agents/models").get("models", [])}
     if as_json:
-        return {"models": live, "quota": quota, "modes": modes}
+        effort = {m: MODEL_NOTES[m]["effort"] for m in live if MODEL_NOTES.get(m, {}).get("effort")}
+        return {"models": live, "quota": quota, "modes": modes, "reasoningEffort": effort}
     print(f"{len(live)} modelos servidos ahora en {INFERENCE}")
     for mid in sorted(live):
         n = MODEL_NOTES.get(mid, {})
@@ -198,6 +202,8 @@ def cmd_models(as_json):
         ctx = ("1M ctx" if n["ctx"] >= 1_000_000 else f"{n['ctx'] // 1000}K ctx") if n.get("ctx") else ""
         tag = "" if mid in MODEL_NOTES else "  (no documentado en la ficha local)"
         print(f"  {mid:<20} {cuota:<14} {ctx:<9} {','.join(n.get('input', []))!s:<17} {n.get('note', '')}{tag}")
+        if n.get("effort"):
+            print(f"  {'':<20} reasoning_effort: {n['effort']}")
     print("cuotas/ctx: nan.builders/docs/models manda si esto discrepa. — no salen en /usage/quota: imagen, voz, embeddings (presupuesto aparte).")
 
 
