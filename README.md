@@ -78,10 +78,17 @@ recuerda que el CLI oficial ya configura OpenCode/Codex/Pi/droid/Hermes por sí 
 (o pi-fleet) con los `compat` que necesita; ni este snippet ni el Setup del oficial —que reemplaza
 `providers.nan` entero— deben pisarlo.
 
-`models` añade a cada modelo su ficha (contexto, modalidades, respuesta máxima, notas), tomada de
-`internal/models/models.go` del CLI oficial y de la doc de NaN. Un `—` en la columna de cuota
+`models` añade a cada modelo su ficha (contexto, modalidades, respuesta máxima, notas y qué hace con
+`reasoning_effort`), tomada de `internal/models/models.go` del CLI oficial y de la doc de NaN. Un `—` en la columna de cuota
 significa que ese modelo no sale en `/usage/quota`: imagen, voz y embeddings van por un
 presupuesto aparte (`flux-2-klein`, por ejemplo, gasta 20 req/min y 100 req/mes, no tokens).
+
+La línea `reasoning_effort` de cada modelo sale de la doc de NaN (2026-09-18): `glm5.3` y
+`glm5.3-flash` admiten `low`·`medium`·`high`·`max`; `qwen3.6` y `gemma4` además `none` y `minimal`
+(sin fase de razonamiento) y topan la fase en 2.048 / 8.192 / 16.384 / 32.768 tokens;
+`deepseek-v4-flash` razona por su cuenta e ignora el parámetro; `qwen3.8-flash` y `mimo-v2.5` lo
+aceptan pero gestionan su profundidad. Un valor que un modelo no aplica **no da error**. La traza
+llega en `message.reasoning_content`, aparte de la respuesta.
 
 ## NaN Usage — el plugin de Orca
 

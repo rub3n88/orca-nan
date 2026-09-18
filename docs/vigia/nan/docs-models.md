@@ -21,7 +21,7 @@ Premium tier: callable only with a key on the GLM 5.3 premium membership. \~753B
 **capabilities**
 
 - Tool calling (function calling)
-- Reasoning mode (reasoning trace)
+- Reasoning control (`reasoning_effort`: low · medium · high · max)
 - Coding and long-horizon agentic tasks
 - 1M token context
 - Streaming generation (SSE)
@@ -43,7 +43,7 @@ Premium tier: callable only with a key on the GLM 5.3 premium membership. \~753B
 **capabilities**
 
 - Tool calling
-- Reasoning mode
+- Reasoning mode (adaptive — not level-adjustable)
 - Vision (image input)
 - 1M token context
 - Streaming generation (SSE)
@@ -65,7 +65,7 @@ Premium tier: callable only with a key on the GLM 5.3 premium membership. \~753B
 **capabilities**
 
 - Tool calling (function calling)
-- Reasoning mode
+- Reasoning control (`reasoning_effort`: low · medium · high · max)
 - Vision (image input)
 - 1M token context
 - Streaming generation (SSE)
@@ -131,7 +131,7 @@ Premium tier: callable only with a key on the GLM 5.3 premium membership. \~753B
 **capabilities**
 
 - Tool calling (XML format)
-- Reasoning mode
+- Reasoning control (`none` · low · medium · high · max)
 - Multimodal (vision / images)
 - Streaming generation (SSE)
 
@@ -152,7 +152,7 @@ The previous generation. 35B parameter MoE, multimodal, with tool calling and re
 **capabilities**
 
 - Tool calling (XML format)
-- Reasoning mode
+- Reasoning control (`none` · low · medium · high · max)
 - Multimodal (vision / images)
 - Streaming generation (SSE)
 
@@ -258,6 +258,37 @@ FLUX diffusion model for text-to-image and image-to-image. Compatible with OpenA
 - Image-to-image with up to 4 references (`/v1/images/edits`)
 - Output as temporary URL (R2, \~60 min) or base64
 - Reproducibility via `seed` and `guidance` control
+
+## Controlling reasoning.
+
+Every chat model above thinks before it answers, and the reasoning trace
+arrives separately from the answer, in `message.reasoning_content`. How much a
+model is allowed to think is a request parameter, `reasoning_effort`, and each
+model applies it differently — the table is the contract. A value a model
+cannot apply is never an error.
+
+| Model                         | `reasoning_effort` values                         | What it does                                                                                                                            |
+| ----------------------------- | ------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
+| `glm5.3` · `glm5.3-flash`     | `low`, `medium`, `high`, `max`                    | Fully controllable. Higher values let the model reason longer before it answers; `max` is the deepest.                                  |
+| `qwen3.6`                     | `none`, `minimal`, `low`, `medium`, `high`, `max` | `none` and `minimal` skip the reasoning phase entirely. The other four cap it: low 2,048, medium 8,192, high 16,384, max 32,768 tokens. |
+| `gemma4`                      | `none`, `minimal`, `low`, `medium`, `high`, `max` | Same as `qwen3.6`: off, or a reasoning budget between 2,048 and 32,768 tokens.                                                          |
+| `deepseek-v4-flash`           | any value (no effect)                             | The model decides per request how much to reason; the parameter never changes that.                                                     |
+| `qwen3.8-flash` · `mimo-v2.5` | accepted, depth not adjustable                    | The parameter is accepted and never rejected, but these models manage their own reasoning depth.                                        |
+
+With no parameter, every model uses its own default (reasoning on for
+`qwen3.6` and `gemma4`, with a 16,384-token budget). More reasoning costs
+latency and counts toward `max_tokens`; it never costs extra setup.
+
+```bash
+curl https://api.nan.builders/v1/chat/completions \
+  -H "Authorization: Bearer $NAN_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model": "glm5.3-flash",
+    "reasoning_effort": "low",
+    "messages": [{"role": "user", "content": "Write a one-line summary of the CAP theorem."}]
+  }'
+```
 
 **rate limits per API key**
 
