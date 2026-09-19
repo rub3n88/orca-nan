@@ -55,6 +55,7 @@
 /api/projects/mine
 /api/referrals
 /api/referrals/inference
+/api/referrals/premium
 /api/referrals/resolve
 /api/registries
 /api/registries/
