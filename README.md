@@ -134,6 +134,8 @@ usa ⌘J). Se puede cambiar en Settings → Shortcuts, grupo «Plugins».
 La misma API key de inferencia autentica `cloud-api.nan.builders`, el backend del panel web de
 NaN, que es donde viven cuotas, consumo y billing. Esas rutas no están documentadas, aunque el CLI
 oficial de NaN ya usa las mismas (`/auth/me`, `/metrics/usage`, `/agents/models`): pueden cambiar.
+Y a veces fallan a medias: `/api/billing` puede devolver `subscription: null` un rato aunque tengas
+suscripción; `billing` (y el comando del plugin) lo dicen tal cual en vez de inventar fechas. Reintenta.
 
 El sistema de plugins de Orca (v0) no tiene barra de estado, ni canal worker → panel, ni permiso de
 red declarable todavía. De ahí el reparto: el worker (Node, fuera de proceso) hace las llamadas y

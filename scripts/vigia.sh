@@ -93,7 +93,10 @@ except Exception as e: print("error", e)'; }
 NU="$ROOT/bin/nan-usage"
 if "$NU" --json quota > "$TMP/quota.json" 2>/dev/null; then
   shape < "$TMP/quota.json" > "$TMP/nan-shape-quota.txt"
-  "$NU" --json usage 2>/dev/null | shape | grep -v '^\.timeSeries' > "$TMP/nan-shape-usage.txt"
+  # Los cuatro buckets (last24h, last30d, monthToDate, allTime) comparten forma; se funden en
+  # `<bucket>` para que un `byModel` vacío (sin consumo en 24h) no cuente como cambio de forma.
+  "$NU" --json usage 2>/dev/null | shape | grep -v '^\.timeSeries' \
+    | sed -E 's/^\.(last24h|last30d|monthToDate|allTime)\./.<bucket>./' | sort -u > "$TMP/nan-shape-usage.txt"
   "$NU" --json billing 2>/dev/null | shape > "$TMP/nan-shape-billing.txt"
   "$NU" --json models 2>/dev/null | python3 -c 'import json,sys; print("\n".join(sorted(json.load(sys.stdin)["models"])))' > "$TMP/nan-models-live.txt" 2>/dev/null
   # Cuotas (cap por modelo): son parte del contrato, no datos personales.
