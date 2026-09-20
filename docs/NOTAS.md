@@ -106,6 +106,11 @@ Fuente: `stablyai/orca` en GitHub (`src/shared/plugins/*`, `src/main/plugins/*`,
   inferencia `/v1/models`) y guarda sesión en `~/.config/nan/session.json` (0600, campos `token` y
   `apiKey`). Ese fichero es ya una fuente de key para nosotros. Condición (a) del plan upstream
   (cloud-api estabilizada) medio cumplida: hay cliente oficial, sigue sin doc ni en `openapi.json`.
+- **cloud-api es inestable a ratos (2026-09-20)**: `/api/billing` devolvió `subscription: null` en una
+  foto del vigía y un minuto después la suscripción completa. `nan-usage billing` y `nan-billing`
+  del plugin lo tratan como «sin suscripción, reintenta» (antes: fechas de 1970). En
+  `/api/metrics/usage`, `byModel` viene `[]` cuando no hay consumo en el bucket (p. ej. `last24h`
+  a primera hora): es dato, no forma; el vigía funde los cuatro buckets en `<bucket>` al fotografiar.
 - Toda la doc de NaN tiene versión markdown en `https://nan.builders/api/docs/<slug>.md`, y el índice
   con hash por página en `https://nan.builders/api/docs/manifest.json`: es la señal que vigila el
   vigía, más fiable que el repo `helmcode/nan` (que sigue vivo, pero es la fuente, no lo publicado).
@@ -184,7 +189,8 @@ tiempo de reset— **no se puede hacer con plugins v0**. Se puede como proveedor
   fuente `helmcode/nan` (`models.mdx`, `openapi.json` → lista de endpoints oficiales); el CLI oficial
   `helmcode/nan-cli` (tag del último release y `internal/models/models.go`, la ficha de modelos);
   rutas de cloud-api sacadas del bundle del SPA, forma (solo claves) de `/api/usage/quota`,
-  `/api/metrics/usage`, `/api/billing`, modelos servidos y caps por modelo. Si una fuente deja de
+  `/api/metrics/usage` (buckets fundidos en `<bucket>`: un `byModel` vacío no es cambio de forma),
+  `/api/billing`, modelos servidos y caps por modelo. Si una fuente deja de
   bajar (404 por renombrado), se avisa como «DESAPARECE» en vez de callar.
 Una automatización de Orca (`nan-orca-vigia`, diaria 10:00 Europe/Madrid, agente claude; el precheck `vigia.sh --precheck` la salta si no hay cambios, y el commit de Orca y la versión instalada no cuentan como cambio) ejecuta el
 script y aplica el criterio de `docs/vigia/PROMPT.md`: cambios de código → rama `vigia/<fecha>` + PR +

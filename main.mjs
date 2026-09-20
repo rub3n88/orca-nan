@@ -127,13 +127,15 @@ export default function activate(orca) {
 
   orca.commands.register('nan-billing', async () => {
     const [b, me] = await Promise.all([api('/api/billing'), api('/api/auth/me')])
-    const s = b.subscription ?? {}
-    const end = s.currentPeriodEnd ? new Date(s.currentPeriodEnd * 1000) : null
+    const s = b.subscription // cloud-api puede devolver null (transitorio, visto 2026-09-20)
+    const end = s?.currentPeriodEnd ? new Date(s.currentPeriodEnd * 1000) : null
     await notify(orca, 'NaN · suscripción', [
       `${me.handle} · tier ${me.tier} · región ${me.region}`,
-      `estado ${s.status ?? '?'}${s.premium ? ' · premium (glm5.3)' : ''} · ${(s.currency ?? '').toUpperCase()}`,
-      end ? `renueva ${end.toLocaleDateString('es-ES')} (${daysLeft(end)} días)` : 'sin periodo',
-      s.cancelAtPeriodEnd ? '⚠ cancelación programada' : ''
+      s
+        ? `estado ${s.status ?? '?'}${s.premium ? ' · premium (glm5.3)' : ''} · ${(s.currency ?? '').toUpperCase()}`
+        : 'sin suscripción (cloud-api devolvió subscription=null; reintenta si tienes una activa)',
+      s ? (end ? `renueva ${end.toLocaleDateString('es-ES')} (${daysLeft(end)} días)` : 'sin periodo') : '',
+      s?.cancelAtPeriodEnd ? '⚠ cancelación programada' : ''
     ].filter(Boolean))
     return { ok: true }
   })

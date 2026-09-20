@@ -212,14 +212,19 @@ def cmd_billing(as_json):
     me = get(CLOUD, "/api/auth/me")
     if as_json:
         return {"billing": b, "me": me}
-    s = b.get("subscription") or {}
-    start = datetime.fromtimestamp(s.get("currentPeriodStart", 0), tz=timezone.utc).date()
-    end = datetime.fromtimestamp(s.get("currentPeriodEnd", 0), tz=timezone.utc).date()
+    s = b.get("subscription")
     print(f"{me.get('handle')} · tier {me.get('tier')} · región {me.get('region')} · namespace {me.get('namespace')}")
-    print(f"suscripción {s.get('status')} · {str(s.get('currency', '')).upper()} · premium (glm5.3): {'sí' if s.get('premium') else 'no'}")
-    print(f"periodo {start} → {end} ({days_left(s.get('currentPeriodEnd', 0))} días)")
-    if s.get("cancelAtPeriodEnd"):
-        print("⚠ cancelación programada al final del periodo")
+    if not s:
+        # cloud-api devuelve a veces `subscription: null` (visto el 2026-09-20, transitorio):
+        # mejor decirlo que imprimir fechas de 1970.
+        print("suscripción: ninguna (cloud-api devolvió subscription=null; si tienes una activa, reintenta)")
+    else:
+        start = datetime.fromtimestamp(s.get("currentPeriodStart", 0), tz=timezone.utc).date()
+        end = datetime.fromtimestamp(s.get("currentPeriodEnd", 0), tz=timezone.utc).date()
+        print(f"suscripción {s.get('status')} · {str(s.get('currency', '')).upper()} · premium (glm5.3): {'sí' if s.get('premium') else 'no'}")
+        print(f"periodo {start} → {end} ({days_left(s.get('currentPeriodEnd', 0))} días)")
+        if s.get("cancelAtPeriodEnd"):
+            print("⚠ cancelación programada al final del periodo")
     print("features:", ", ".join(k for k, v in (me.get("features") or {}).items() if v) or "—")
 
 
