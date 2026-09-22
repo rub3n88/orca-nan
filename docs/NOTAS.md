@@ -106,6 +106,14 @@ Fuente: `stablyai/orca` en GitHub (`src/shared/plugins/*`, `src/main/plugins/*`,
   inferencia `/v1/models`) y guarda sesión en `~/.config/nan/session.json` (0600, campos `token` y
   `apiKey`). Ese fichero es ya una fuente de key para nosotros. Condición (a) del plan upstream
   (cloud-api estabilizada) medio cumplida: hay cliente oficial, sigue sin doc ni en `openapi.json`.
+- **CLI oficial v0.1.20/v0.1.21 (2026-09-21, visto por el vigía el 2026-09-22)**: revisión de
+  seguridad (PR #23). `session.json` sigue en la misma ruta con los mismos campos; solo cambia cómo se
+  escribe (temporal + rename, 0600 garantizado). `nan auth logout` ahora borra `session.json` **y
+  retira la key** de las herramientas que configuró (`--keep-tools` para no hacerlo); Hermes pasa a
+  guardarla en su `.env` como `${NAN_API_KEY}`. No toca `~/.config/nan/api-key` ni
+  `~/.config/nan/env`, así que nuestra cadena de lectura sigue igual: tras un logout solo desaparece
+  el último eslabón. El Setup de Pi sigue reemplazando `providers.nan` entero, pero ya no reescribe
+  un `models.json` que no parsea. `models.go` sin cambios. Los clientes HTTP llevan timeout de 30 s.
 - **cloud-api es inestable a ratos (2026-09-20)**: `/api/billing` devolvió `subscription: null` en una
   foto del vigía y un minuto después la suscripción completa. `nan-usage billing` y `nan-billing`
   del plugin lo tratan como «sin suscripción, reintenta» (antes: fechas de 1970). En

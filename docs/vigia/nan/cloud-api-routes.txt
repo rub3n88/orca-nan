@@ -2,6 +2,10 @@
 /api/account/discord/unlink
 /api/account/email/request
 /api/account/profile
+/api/admin/discount-programs
+/api/admin/discounts
+/api/admin/discounts/
+/api/admin/discounts/candidates
 /api/admin/features
 /api/admin/features/
 /api/admin/features/catalogue/
