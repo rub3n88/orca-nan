@@ -18,6 +18,7 @@
 /api/admin/metrics/overview
 /api/admin/metrics/stale-invitations
 /api/admin/metrics/timeseries
+/api/admin/referrals/leaderboard
 /api/admin/tags
 /api/admin/waitlist/final-notice
 /api/admin/waitlist/invite
