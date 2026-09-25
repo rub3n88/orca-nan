@@ -1,11 +1,11 @@
 Usage & rate-limit tracking
-Orca reads local usage state for Claude Code, Codex, Gemini, OpenCode, Kimi Code, and MiniMax and surfaces it in the status bar, so you know how close you are to a rate limit before an agent stalls.
+Orca tracks usage for Claude Code, Codex, Gemini, OpenCode, Kimi Code, and MiniMax and surfaces it in the status bar, so you know how close you are to a rate limit before an agent stalls.
 What's shown
 Current usage against the active account's plan.
 Time to reset for 5-hour, daily, weekly, and Claude Fable weekly windows (where applicable).
 A warning chip when you cross 80% of a limit.
 How it works
-Orca reads the local usage state each agent maintains on disk (under ~/.claude, ~/.codex, and the Gemini/OpenCode equivalents). No API calls, no extra auth. This means the readout is only as fresh as the agent's own bookkeeping — numbers update when the agent writes, not in real time.
+The source depends on the provider. Orca reads local agent state where available; OpenCode Go usage comes from its console API and needs your full opencode.ai Cookie header, including __Host-console_session, under Settings → Accounts. An auth cookie alone can find workspaces but cannot fetch Go usage. Other providers can require their own account setup in Settings.
 Multi-account accounting
 The status bar always reflects the active account. Other configured accounts are visible in the account switcher with their own usage.
 Usage roster
@@ -17,5 +17,5 @@ Rows without live numbers show a short status instead: Loading usage…, not sig
 Mobile
 On the companion app, open the host Accounts screen for the same switcher/usage readout. When Codex has earned rate-limit reset credits, spend one from that screen (see Mobile companion).
 Estimated cost (Stats)
-The Stats breakdown may show estimated cost for known model families (including Claude 5-class and Codex GPT-5.6 rows). Rows marked • inferred pricing use Orca’s local price table, not a live bill from the provider. Prefer the provider console for authoritative spend.
+The Stats breakdown may show estimated cost for known model families, including Claude Opus 5.5, Fable 5.1, and Codex GPT-5.6 and GPT-6 Astra, Sol, and Luna. Orca uses a local price table, not a live bill from the provider. • inferred pricing marks an estimate where Orca inferred the model. A Codex cost marked • excludes unpriced models leaves those models out of the estimate; the Overview also flags a partial total. Prefer the provider console for authoritative spend.
 ← Previous

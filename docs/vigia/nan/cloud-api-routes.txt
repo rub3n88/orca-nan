@@ -16,9 +16,12 @@
 /api/admin/metrics/funnel
 /api/admin/metrics/mrr
 /api/admin/metrics/overview
+/api/admin/metrics/referral-economics
 /api/admin/metrics/stale-invitations
 /api/admin/metrics/timeseries
 /api/admin/referrals/leaderboard
+/api/admin/referrals/paid-signups
+/api/admin/referrals/retention
 /api/admin/tags
 /api/admin/waitlist/final-notice
 /api/admin/waitlist/invite
