@@ -26,7 +26,7 @@ const orca = {
 }
 
 activate(orca)
-for (const id of ['nan-quota', 'nan-usage', 'nan-billing', 'nan-check']) {
+for (const id of ['nan-quota', 'nan-usage', 'nan-models', 'nan-billing', 'nan-check']) {
   console.log(`\n=== ${id}`)
   console.log('→', JSON.stringify(await commands.get(id)()))
 }

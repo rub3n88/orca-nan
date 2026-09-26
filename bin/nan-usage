@@ -2,7 +2,7 @@
 """nan-usage — la suscripción de NaN (nan.builders) desde la terminal.
 
   nan-usage quota              cuota por modelo (usado / cap / reset)
-  nan-usage usage              consumo 24h · mes · 30d · total, por modelo
+  nan-usage usage [cloud]      consumo hoy · mes · 30d · total, por modelo (cloud: forzar cloud-api)
   nan-usage models             modelos servidos ahora mismo + cuota + notas
   nan-usage billing            estado de la suscripción
   nan-usage ping [modelo...]   latencia real y qué modelo ha servido de verdad
@@ -15,8 +15,9 @@ trae la TUI y el Setup de herramientas; este da cuota por modelo, ping y status.
 
 Key, en este orden: $NAN_API_KEY · ~/.config/nan/api-key · ~/.config/nan/env
 (NAN_API_KEY=…) · ~/.config/nan/session.json del CLI oficial (campo apiKey).
-La misma key sirve para la API de inferencia (api.nan.builders/v1) y para el
-backend del panel (cloud-api.nan.builders), de donde salen cuotas y billing.
+La misma key sirve para la API de inferencia (api.nan.builders/v1, de donde sale
+el consumo: GET /v1/usage, oficial desde 2026-09-26) y para el backend del panel
+(cloud-api.nan.builders), de donde salen cuotas y billing.
 """
 import json
 import os
@@ -24,7 +25,8 @@ import sys
 import time
 import urllib.error
 import urllib.request
-from datetime import datetime, timezone
+import urllib.parse
+from datetime import datetime, timedelta, timezone
 
 INFERENCE = "https://api.nan.builders/v1"
 CLOUD = "https://cloud-api.nan.builders"
@@ -42,6 +44,7 @@ MODEL_NOTES = {
     "deepseek-v4-flash": {"name": "DeepSeek V4 Flash", "ctx": 1048575, "max": 32768, "input": ["text", "image"], "effort": "se ignora (el modelo decide por petición)", "note": "reasoning · vision (Vision-Exp) · el recomendado para empezar"},
     "glm5.3-flash": {"name": "GLM 5.3 Flash", "ctx": 1048576, "max": 32768, "input": ["text", "image"], "effort": "low·medium·high·max", "note": "reasoning verboso por defecto · el de código sin premium"},
     "qwen3.8-flash": {"name": "Qwen 3.8 Flash", "ctx": 262144, "max": 32768, "input": ["text", "image"], "effort": "se acepta, profundidad no ajustable", "note": "reasoning por defecto · respuesta máx 131K según doc"},
+    "mimo-v2.6-flash": {"name": "Xiaomi MiMo V2.6 Flash", "ctx": 1048576, "max": 32768, "input": ["text", "image", "audio"], "effort": "se acepta, profundidad no ajustable", "note": "omnimodal · el MiMo más nuevo · sin ficha en el CLI oficial (doc 2026-09-26; max como mimo-v2.5) · max_tokens ≥ 300 con reasoning"},
     "mimo-v2.5": {"name": "Xiaomi MiMo V2.5", "ctx": 1048576, "max": 32768, "input": ["text", "image", "audio"], "effort": "se acepta, profundidad no ajustable", "note": "omnimodal · respuesta máx 131K según doc · max_tokens ≥ 300 con reasoning"},
     "gemma4": {"name": "Gemma 4", "ctx": 262144, "max": 65536, "input": ["text", "image"], "effort": "none·minimal·low…max (2K–32K)", "note": "multimodal · reasoning on por defecto (16K)"},
     "qwen3.6": {"name": "Qwen 3.6", "ctx": 262144, "max": 65536, "input": ["text", "image"], "effort": "none·minimal·low…max (2K–32K)", "note": "generación anterior (doc: empieza por deepseek-v4-flash)"},
@@ -51,14 +54,15 @@ MODEL_NOTES = {
     "rerank": {"name": "Rerank", "ctx": 0, "input": ["text"], "note": "reranker"},
     "whisper": {"name": "Whisper", "ctx": 0, "input": ["audio"], "note": "STT (25 MB máx)"},
     "kokoro": {"name": "Kokoro", "ctx": 0, "input": ["text"], "note": "TTS"},
-    "flux-2-klein": {"name": "Flux 2 Klein", "ctx": 0, "input": ["text", "image"], "note": "imagen · 20 req/min · 100 req/mes (presupuesto aparte: no gasta cuota de tokens)"},
+    "flux-2-klein": {"name": "Flux 2 Klein", "ctx": 0, "input": ["text", "image"], "note": "imagen · 20 req/min · 100 req/mes compartidas con qwen-image-2.1 (presupuesto aparte: no gasta cuota de tokens)"},
+    "qwen-image-2.1": {"name": "Qwen Image 2.1", "ctx": 0, "input": ["text"], "note": "imagen texto→imagen (texto limpio dentro) · 100 req/mes compartidas con flux-2-klein"},
 }
 # glm5.2 (2026-09-16): ya no sale en /v1/models ni en la doc; lo sustituye glm5.3.
 # Sigue apareciendo en /api/usage/quota con cap y ventana 4h: se muestra tal cual.
 # `effort` (doc de 2026-09-18, /docs/models «Controlling reasoning» y /docs/api): qué hace cada
 # modelo con `reasoning_effort`. Un valor que un modelo no aplica nunca da error, solo se ignora.
 # La traza de razonamiento llega aparte, en `message.reasoning_content`.
-CHAT_EXCLUDE = {"qwen3-embedding", "rerank", "whisper", "kokoro", "flux-2-klein"}
+CHAT_EXCLUDE = {"qwen3-embedding", "rerank", "whisper", "kokoro", "flux-2-klein", "qwen-image-2.1"}
 
 
 def die(msg, code=1):
@@ -119,15 +123,25 @@ def HEADERS():
     return {"Authorization": f"Bearer {key()}", "User-Agent": "nan-usage/0.2 (+https://github.com/rub3n88/orca-nan)"}
 
 
-def get(base, path, timeout=20):
+def fetch(base, path, timeout=20):
+    """GET JSON; lanza RuntimeError("<ruta> → <motivo>") si falla."""
     req = urllib.request.Request(base + path, headers=HEADERS())
     try:
         with urllib.request.urlopen(req, timeout=timeout) as r:
             return json.load(r)
     except urllib.error.HTTPError as e:
-        die(f"{path} → HTTP {e.code}")
-    except urllib.error.URLError as e:
-        die(f"{path} → {e.reason}")
+        raise RuntimeError(f"{path.split('?')[0]} → HTTP {e.code}")
+    except (urllib.error.URLError, TimeoutError) as e:
+        raise RuntimeError(f"{path.split('?')[0]} → {getattr(e, 'reason', e)}")
+    except json.JSONDecodeError:
+        raise RuntimeError(f"{path.split('?')[0]} → respuesta no JSON")
+
+
+def get(base, path, timeout=20):
+    try:
+        return fetch(base, path, timeout)
+    except RuntimeError as e:
+        die(str(e))
 
 
 def fmt(n):
@@ -170,10 +184,36 @@ def cmd_quota(as_json):
         print(f"  {m['model']:<20} {bar(p)} {p * 100:5.1f}%  {fmt(m['tokensUsed']):>7} / {fmt(m['cap']):<6} {reset}{win}{flag}")
 
 
-def cmd_usage(as_json):
+def official_usage():
+    """GET /v1/usage (oficial, 2026-09-26): filas por (día UTC, modelo). Una ventana que cubre
+    mes en curso y últimos 30 días (máx. 90), todas las páginas fundidas en `data`."""
+    today = datetime.now(timezone.utc).date()
+    start = min(today.replace(day=1), today - timedelta(days=29))
+    base = f"/usage?start_date={start}&end_date={today}&limit=500"
+    report, rows, cursor = None, [], None
+    while True:
+        r = fetch(INFERENCE, base + (f"&cursor={urllib.parse.quote(cursor)}" if cursor else ""))
+        report = report or r
+        rows += r.get("data") or []
+        cursor = r.get("next_cursor") if r.get("has_more") else None
+        if not cursor:
+            break
+    return {**report, "data": rows, "has_more": False, "next_cursor": None}
+
+
+def cmd_usage(as_json, args=()):
+    # Oficial primero; cloud-api (ingeniería inversa) queda de respaldo o a petición (`usage cloud`).
+    if "cloud" not in args:
+        try:
+            u = official_usage()
+        except RuntimeError as e:
+            print(f"nan-usage: {e}; uso cloud-api /api/metrics/usage", file=sys.stderr)
+        else:
+            return u if as_json else print_official_usage(u)
     u = get(CLOUD, "/api/metrics/usage")
     if as_json:
         return u
+    print("fuente: cloud-api /api/metrics/usage (respaldo, no documentada)")
     for label, k in (("24h", "last24h"), ("mes", "monthToDate"), ("30d", "last30d"), ("total", "allTime")):
         b = u.get(k) or {}
         print(f"{label:<6} {fmt(b.get('totalTokens')):>8}")
@@ -184,6 +224,30 @@ def cmd_usage(as_json):
         by_day = {}
         for r in ts[-14:]:
             by_day[r["date"]] = by_day.get(r["date"], 0) + r["inputTokens"] + r["outputTokens"]
+        print("últimos días:", "  ".join(f"{d[5:]} {fmt(v)}" for d, v in sorted(by_day.items())[-7:]))
+
+
+def print_official_usage(u):
+    today = datetime.now(timezone.utc).date()
+    rows = u.get("data") or []
+    buckets = (("hoy", str(today)), ("mes", str(today.replace(day=1))), ("30d", str(today - timedelta(days=29))))
+    print(f"fuente: {INFERENCE}/usage (oficial) · días UTC · {u.get('start_date')} → {u.get('end_date')}")
+    for label, since in buckets:
+        by = {}
+        for r in rows:
+            if r["date"] >= since:
+                m = by.setdefault(r["model"], [0, 0, 0])
+                m[0] += r.get("prompt_tokens", 0); m[1] += r.get("completion_tokens", 0); m[2] += r.get("api_requests", 0)
+        total = sum(v[0] + v[1] for v in by.values())
+        print(f"{label:<6} {fmt(total):>8}  {sum(v[2] for v in by.values())} req")
+        for model, (i, o, n) in sorted(by.items(), key=lambda kv: -(kv[1][0] + kv[1][1]))[:6]:
+            print(f"         {model:<24} in {fmt(i):>7}  out {fmt(o):>6}  {n:>6} req")
+    at = u.get("all_time") or {}
+    print(f"{'total':<6} {fmt(at.get('total_tokens')):>8}  {at.get('api_requests', 0)} req (req solo desde 2026-09-02)")
+    by_day = {}
+    for r in rows:
+        by_day[r["date"]] = by_day.get(r["date"], 0) + r.get("total_tokens", 0)
+    if by_day:
         print("últimos días:", "  ".join(f"{d[5:]} {fmt(v)}" for d, v in sorted(by_day.items())[-7:]))
 
 
@@ -204,7 +268,7 @@ def cmd_models(as_json):
         print(f"  {mid:<20} {cuota:<14} {ctx:<9} {','.join(n.get('input', []))!s:<17} {n.get('note', '')}{tag}")
         if n.get("effort"):
             print(f"  {'':<20} reasoning_effort: {n['effort']}")
-    print("cuotas/ctx: nan.builders/docs/models manda si esto discrepa. — no salen en /usage/quota: imagen, voz, embeddings (presupuesto aparte).")
+    print("cuotas/ctx: nan.builders/docs/models manda si esto discrepa. — no salen en /usage/quota: imagen (flux-2-klein + qwen-image-2.1: 100 req/mes compartidas), voz, embeddings (presupuesto aparte).")
 
 
 def cmd_billing(as_json):
@@ -371,7 +435,7 @@ def main(argv):
     argv = [a for a in argv if a != "--json"]
     cmd, args = (argv[0] if argv else "quota"), argv[1:]
     table = {
-        "quota": lambda: cmd_quota(as_json), "usage": lambda: cmd_usage(as_json),
+        "quota": lambda: cmd_quota(as_json), "usage": lambda: cmd_usage(as_json, args),
         "models": lambda: cmd_models(as_json), "billing": lambda: cmd_billing(as_json),
         "ping": lambda: cmd_ping(as_json, args), "status": lambda: cmd_status(as_json),
         "config": lambda: cmd_config(as_json, args),

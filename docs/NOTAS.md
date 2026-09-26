@@ -46,13 +46,16 @@ Fuente: `stablyai/orca` en GitHub (`src/shared/plugins/*`, `src/main/plugins/*`,
   `source.kind: git` + `ref`) o carpeta de desarrollo (Settings → Plugins → Development). `.git` en
   la raíz queda fuera del hash de contenido; límite 50 MB.
 - Roster de uso de Orca (barra de estado): proveedores cableados en `src/main/rate-limits/*`
-  (`claude`, `codex`, `gemini`, `opencode-go`, `kimi`, `minimax`, `grok`, `antigravity`). **MiniMax**
+  (`claude`, `codex`, `gemini`, `opencode-go`, `kimi`, `minimax`, `grok`, `antigravity`, y desde
+  2026-09-26 `cursor`, con `monthly` + `buckets` por pool de plan; la doc cita además Muse Code por
+  logs locales). Sigue sin haber proveedor personalizable ni API de plugin para el roster. **MiniMax**
   es el precedente de proveedor remoto por credencial (cookie en Settings → Integrations), ~18
   ficheros no-test entre `main/rate-limits`, `shared/*-types` y settings.
 
 ### NaN
 
-- `api.nan.builders/v1` (LiteLLM) no expone uso: `/v1/usage`, `/key/info`, `/spend/logs` → 404.
+- `api.nan.builders/v1` (LiteLLM) no exponía uso (`/v1/usage`, `/key/info`, `/spend/logs` → 404) hasta
+  el 2026-09-26: ver «`GET /v1/usage` oficial» más abajo.
 - **La misma API key autentica `https://cloud-api.nan.builders`**, backend del SPA
   `cloud.nan.builders`. Rutas sacadas del bundle JS, no documentadas:
   - `GET /api/usage/quota` → `periodStart`, `models[{model, tokensUsed, cap, remaining, periodEnd,
@@ -119,6 +122,20 @@ Fuente: `stablyai/orca` en GitHub (`src/shared/plugins/*`, `src/main/plugins/*`,
   del plugin lo tratan como «sin suscripción, reintenta» (antes: fechas de 1970). En
   `/api/metrics/usage`, `byModel` viene `[]` cuando no hay consumo en el bucket (p. ej. `last24h`
   a primera hora): es dato, no forma; el vigía funde los cuatro buckets en `<bucket>` al fotografiar.
+- **`GET /v1/usage` oficial (2026-09-26, visto por el vigía en `openapi.json` y
+  `/docs/getting-started` §«Usage metrics»)**: filas por (día UTC, modelo) con `prompt_tokens`,
+  `completion_tokens`, `total_tokens`, `api_requests` (peticiones solo desde 2026-09-02), `totals`
+  (+`by_model`) de toda la ventana, `all_time` (con `cached_at`), paginado con `cursor`/`next_cursor`
+  (`limit` 1–500). Ventana máx. 90 días (más → 400, no recorta), por defecto 30; 30 req/min aparte
+  de los modelos. **No trae cuota** (cap, restante, reset, ventana 4h): eso sigue solo en cloud-api.
+  Desde 0.2.3 `nan-usage usage` y el comando «consumo» del plugin la usan y caen a
+  `/api/metrics/usage` si falla (`nan-usage usage cloud` fuerza el respaldo). «24h» pasa a «hoy
+  (UTC)». El mismo día `openapi.json` retiró `POST /search` (web search) y `POST /mcp`; no los usamos.
+- **Modelos nuevos (2026-09-26)**: `mimo-v2.6-flash` (omnimodal texto+imagen+audio, 1M ctx, 1B
+  tokens/mes, 5 concurrentes, 1,5M tpm, `reasoning_effort` aceptado sin profundidad; sin ficha en
+  `models.go` del CLI oficial: `max` 32K como mimo-v2.5) y `qwen-image-2.1` (texto→imagen,
+  512–1280 px, **comparte** las 100 req/mes de imagen con `flux-2-klein`). Ambos en `MODEL_NOTES`;
+  `qwen-image-2.1` fuera de los snippets de chat.
 - Toda la doc de NaN tiene versión markdown en `https://nan.builders/api/docs/<slug>.md`, y el índice
   con hash por página en `https://nan.builders/api/docs/manifest.json`: es la señal que vigila el
   vigía, más fiable que el repo `helmcode/nan` (que sigue vivo, pero es la fuente, no lo publicado).
@@ -149,13 +166,15 @@ Fuente: `stablyai/orca` en GitHub (`src/shared/plugins/*`, `src/main/plugins/*`,
 
 1. Umbral y cooldown configurables vía `settings:own` cuando Orca tenga UI de settings de plugin.
 2. Ventana 4h de glm5.3 (antes glm5.2): hoy mostramos la cuota del periodo; el consumo de la ventana no viene en la API.
-   Pedirlo a NaN o derivarlo de `timeSeries`.
+   Pedirlo a NaN o derivarlo de `timeSeries` (las filas de `/v1/usage` son diarias: no sirven para 4h).
 3. Aviso de renovación de periodo (`billing.currentPeriodEnd` a ≤ 2 días) en el mismo check.
 4. `secrets` en vez de fichero cuando exista una vía de entrada (settings UI o comando con args).
 5. Declarar `net:fetch` en cuanto exista y re-consentir. Vigilar `PLUGIN_CAPABILITY_KINDS` en
    `src/shared/plugins/plugin-capabilities.ts`.
 6. Panel con datos vivos si Orca abre canal worker → panel o permite `storage.get` desde panel.
 7. Versión EN de textos si se comparte fuera de NaN. Tests del worker con el arnés de `scripts/`.
+8. Migrar cuota y aviso del 80 % a la API oficial en cuanto NaN publique un endpoint de cuota
+   (`/v1/usage` solo da consumo; el vigía mira `openapi-paths.txt`).
 
 ### Upstream a `stablyai/orca` (cuando tenga sentido)
 
@@ -174,14 +193,16 @@ tiempo de reset— **no se puede hacer con plugins v0**. Se puede como proveedor
   mapeo JSON) que como «NaN»; Stably no va a mantener un proveedor de nicho.
 - Paso previo barato: abrir issue preguntando por `net:fetch` para plugins y por un proveedor
   genérico de cuota. Si contestan que los plugins tendrán status-bar + red, no hace falta el PR.
-- Tiene sentido si: (a) NaN documenta o estabiliza `cloud-api` (hoy es ingeniería inversa) y
+- Tiene sentido si: (a) NaN documenta o estabiliza `cloud-api` (hoy es ingeniería inversa; desde
+  2026-09-26 el uso es oficial en `/v1/usage`, la cuota no) y
   (b) hay más gente de NaN usando Orca. Sin (a), un PR upstream se rompe con el primer cambio de NaN.
 
 ### NaN
 
 - Publicar en Projects (`nan.builders/projects`) con tags `tools`, `api`, `agents`.
-- Pedir a NaN un endpoint documentado de cuota/uso (aunque sea el mismo `cloud-api`) para no
-  depender de rutas del bundle. Y `tokensUsed` de la ventana 4h de glm5.3.
+- ~~Endpoint documentado de uso~~: hecho, `GET /v1/usage` (2026-09-26). Falta el de **cuota**
+  (cap/restante/reset por modelo) y `tokensUsed` de la ventana 4h de glm5.3: sin él, el aviso del
+  80 % sigue en cloud-api.
 - Pedir ficha en la doc para `minimax-h3` (se sirve sin ficha) y el consumo del presupuesto de imagen
   (req/mes de `flux-2-klein`), que hoy no expone ninguna ruta.
 
@@ -196,8 +217,8 @@ tiempo de reset— **no se puede hacer con plugins v0**. Se puede como proveedor
   las páginas que nos importan en markdown (`models.md`, `choose-a-model.md`, `nan-cli.md`); la
   fuente `helmcode/nan` (`models.mdx`, `openapi.json` → lista de endpoints oficiales); el CLI oficial
   `helmcode/nan-cli` (tag del último release y `internal/models/models.go`, la ficha de modelos);
-  rutas de cloud-api sacadas del bundle del SPA, forma (solo claves) de `/api/usage/quota`,
-  `/api/metrics/usage` (buckets fundidos en `<bucket>`: un `byModel` vacío no es cambio de forma),
+  rutas de cloud-api sacadas del bundle del SPA, forma (solo claves) de `/v1/usage` oficial
+  (`shape-usage.txt`), `/api/usage/quota`, `/api/metrics/usage` (`shape-metrics-usage.txt`, buckets fundidos en `<bucket>`: un `byModel` vacío no es cambio de forma),
   `/api/billing`, modelos servidos y caps por modelo. Si una fuente deja de
   bajar (404 por renombrado), se avisa como «DESAPARECE» en vez de callar.
 Una automatización de Orca (`nan-orca-vigia`, diaria 10:00 Europe/Madrid, agente claude; el precheck `vigia.sh --precheck` la salta si no hay cambios, y el commit de Orca y la versión instalada no cuentan como cambio) ejecuta el
