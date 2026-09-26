@@ -8,6 +8,7 @@ import { homedir } from 'node:os'
 import { join } from 'node:path'
 
 const CLOUD_API = 'https://cloud-api.nan.builders'
+const INFERENCE = 'https://api.nan.builders/v1'
 const NAN_DIR = join(homedir(), '.config', 'nan')
 const KEY_FILE = join(NAN_DIR, 'api-key')
 const ENV_FILE = join(NAN_DIR, 'env') // pi-fleet: NAN_API_KEY=…
@@ -39,20 +40,57 @@ async function readKey() {
   throw new Error(`falta la API key: ${KEY_FILE}, ${ENV_FILE} o ${SESSION_FILE} (CLI oficial: nan auth login)`)
 }
 
-async function api(path) {
+async function getJson(base, path) {
   const key = await readKey()
   const controller = new AbortController()
   const timer = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS)
   try {
-    const res = await fetch(CLOUD_API + path, {
+    const res = await fetch(base + path, {
       headers: { Authorization: `Bearer ${key}` },
       signal: controller.signal
     })
-    if (!res.ok) throw new Error(`${path} → HTTP ${res.status}`)
+    if (!res.ok) throw new Error(`${path.split('?')[0]} → HTTP ${res.status}`)
     return await res.json()
   } finally {
     clearTimeout(timer)
   }
+}
+const api = (path) => getJson(CLOUD_API, path)
+
+// GET /v1/usage (oficial desde 2026-09-26): filas por (día UTC, modelo). Una ventana que cubre
+// el mes en curso y los últimos 30 días, todas las páginas.
+async function officialUsage() {
+  const day = (d) => d.toISOString().slice(0, 10)
+  const now = new Date()
+  const today = day(now)
+  const month = today.slice(0, 8) + '01'
+  const last30 = day(new Date(now.getTime() - 29 * 86_400_000))
+  const base = `/usage?start_date=${month < last30 ? month : last30}&end_date=${today}&limit=500`
+  const rows = []
+  let report = null
+  let cursor = null
+  do {
+    const r = await getJson(INFERENCE, base + (cursor ? `&cursor=${encodeURIComponent(cursor)}` : ''))
+    report ??= r
+    rows.push(...(r.data ?? []))
+    cursor = r.has_more ? r.next_cursor : null
+  } while (cursor)
+  const bucket = (since) => {
+    const by = new Map()
+    for (const r of rows) if (r.date >= since) by.set(r.model, (by.get(r.model) ?? 0) + (r.total_tokens ?? 0))
+    return { total: [...by.values()].reduce((a, b) => a + b, 0), byModel: [...by].map(([model, total]) => ({ model, total })) }
+  }
+  return { today: bucket(today), month: bucket(month), last30: bucket(last30), allTime: report.all_time?.total_tokens ?? 0 }
+}
+
+// cloud-api /api/metrics/usage (no documentada): respaldo si la oficial falla.
+async function cloudUsage() {
+  const u = await api('/api/metrics/usage')
+  const bucket = (b) => ({
+    total: b?.totalTokens ?? 0,
+    byModel: (b?.byModel ?? []).map((m) => ({ model: m.model, total: m.inputTokens + m.outputTokens }))
+  })
+  return { today: bucket(u.last24h), month: bucket(u.monthToDate), last30: bucket(u.last30d), allTime: u.allTime?.totalTokens ?? 0 }
 }
 
 const fmt = (n) =>
@@ -91,31 +129,33 @@ export default function activate(orca) {
   })
 
   orca.commands.register('nan-usage', async () => {
-    const u = await api('/api/metrics/usage')
+    let u
+    let source = 'v1/usage'
+    try {
+      u = await officialUsage()
+    } catch (error) {
+      orca.log(`/v1/usage falló (${error instanceof Error ? error.message : String(error)}); uso cloud-api`)
+      u = await cloudUsage()
+      source = 'cloud-api'
+    }
     const top = (bucket) =>
-      (bucket?.byModel ?? [])
-        .map((m) => ({ ...m, total: m.inputTokens + m.outputTokens }))
+      [...bucket.byModel]
         .sort((a, b) => b.total - a.total)
         .slice(0, 3)
         .map((m) => `${m.model} ${fmt(m.total)}`)
         .join(', ')
+    // La oficial cuenta por día UTC («hoy»); la de respaldo, 24h rodantes.
     await notify(orca, 'NaN · consumo', [
-      `24h: ${fmt(u.last24h?.totalTokens ?? 0)} — ${top(u.last24h)}`,
-      `mes: ${fmt(u.monthToDate?.totalTokens ?? 0)} — ${top(u.monthToDate)}`,
-      `30d: ${fmt(u.last30d?.totalTokens ?? 0)} · total: ${fmt(u.allTime?.totalTokens ?? 0)}`
+      `${source === 'v1/usage' ? 'hoy (UTC)' : '24h'}: ${fmt(u.today.total)} — ${top(u.today)}`,
+      `mes: ${fmt(u.month.total)} — ${top(u.month)}`,
+      `30d: ${fmt(u.last30.total)} · total: ${fmt(u.allTime)}`
     ])
-    return { ok: true }
+    return { ok: true, source }
   })
 
   orca.commands.register('nan-models', async () => {
     // Lo servido ahora mismo (inferencia) cruzado con lo que tiene cuota (cloud).
-    const key = await readKey()
-    const res = await fetch('https://api.nan.builders/v1/models', {
-      headers: { Authorization: `Bearer ${key}` },
-      signal: AbortSignal.timeout(FETCH_TIMEOUT_MS)
-    })
-    if (!res.ok) throw new Error(`/v1/models → HTTP ${res.status}`)
-    const live = (await res.json()).data.map((m) => m.id).sort()
+    const live = (await getJson(INFERENCE, '/models')).data.map((m) => m.id).sort()
     const quota = new Map((await api('/api/usage/quota')).models.map((m) => [m.model, m]))
     const lines = live.map((id) => {
       const q = quota.get(id)

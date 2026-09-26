@@ -85,3 +85,5 @@
 /api/videos/upload-url
 /api/workspaces
 /api/workspaces/
+/api/workspaces/slots
+/api/workspaces/slots/checkout

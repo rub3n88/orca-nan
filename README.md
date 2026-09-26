@@ -48,7 +48,7 @@ ln -s "$PWD/bin/nan-usage" ~/.local/bin/nan-usage     # o cualquier carpeta del 
 
 ```
 nan-usage quota              cuota por modelo (usado / cap / reset)
-nan-usage usage              consumo 24h · mes · 30d · total, por modelo
+nan-usage usage [cloud]      consumo hoy · mes · 30d · total, por modelo (cloud: forzar cloud-api)
 nan-usage models             modelos servidos ahora mismo + cuota + notas
 nan-usage billing            estado de la suscripción
 nan-usage ping [modelo...]   latencia al primer token y qué modelo ha servido de verdad
@@ -78,23 +78,29 @@ recuerda que el CLI oficial ya configura OpenCode/Codex/Pi/droid/Hermes por sí 
 (o pi-fleet) con los `compat` que necesita; ni este snippet ni el Setup del oficial —que reemplaza
 `providers.nan` entero— deben pisarlo.
 
+`usage` lee el endpoint **oficial** `GET /v1/usage` de NaN (desde el 2026-09-26): tokens y
+peticiones por día UTC y modelo, más el total histórico. Si falla, cae a la ruta no documentada de
+cloud-api (`/api/metrics/usage`, 24h rodantes) y lo dice; `nan-usage usage cloud` la fuerza. La
+**cuota** (cap, restante, reset, ventana 4h) no está en la API oficial: `quota`, `status` y el aviso
+del 80 % siguen leyendo cloud-api.
+
 `models` añade a cada modelo su ficha (contexto, modalidades, respuesta máxima, notas y qué hace con
 `reasoning_effort`), tomada de `internal/models/models.go` del CLI oficial y de la doc de NaN. Un `—` en la columna de cuota
 significa que ese modelo no sale en `/usage/quota`: imagen, voz y embeddings van por un
-presupuesto aparte (`flux-2-klein`, por ejemplo, gasta 20 req/min y 100 req/mes, no tokens).
+presupuesto aparte (`flux-2-klein` y `qwen-image-2.1` comparten 100 req/mes, no tokens).
 
 La línea `reasoning_effort` de cada modelo sale de la doc de NaN (2026-09-18): `glm5.3` y
 `glm5.3-flash` admiten `low`·`medium`·`high`·`max`; `qwen3.6` y `gemma4` además `none` y `minimal`
 (sin fase de razonamiento) y topan la fase en 2.048 / 8.192 / 16.384 / 32.768 tokens;
-`deepseek-v4-flash` razona por su cuenta e ignora el parámetro; `qwen3.8-flash` y `mimo-v2.5` lo
-aceptan pero gestionan su profundidad. Un valor que un modelo no aplica **no da error**. La traza
+`deepseek-v4-flash` razona por su cuenta e ignora el parámetro; `qwen3.8-flash`, `mimo-v2.5` y
+`mimo-v2.6-flash` lo aceptan pero gestionan su profundidad. Un valor que un modelo no aplica **no da error**. La traza
 llega en `message.reasoning_content`, aparte de la respuesta.
 
 ## NaN Usage — el plugin de Orca
 
 | Dónde | Qué |
 |---|---|
-| ⌘J → «NaN: …» | **cuota por modelo** (⌘⌥U) · **consumo 24h / mes** · **modelos disponibles** · **suscripción** · **comprobar umbral 80 %** — como notificación de escritorio |
+| ⌘J → «NaN: …» | **cuota por modelo** (⌘⌥U) · **consumo hoy / mes** (API oficial `/v1/usage`) · **modelos disponibles** · **suscripción** · **comprobar umbral 80 %** — como notificación de escritorio |
 | Automático | Cuando un agente pasa a `done`, mira la cuota (máx. 1 vez / 10 min) y avisa si algún modelo supera el 80 %. Un aviso por modelo y periodo |
 | Panel «NaN» (barra derecha) | Botones que escriben `nan-usage quota`, `nan-usage ping`, `nan-usage config …` en la terminal que elijas |
 
@@ -131,8 +137,9 @@ usa ⌘J). Se puede cambiar en Settings → Shortcuts, grupo «Plugins».
 
 ## Cómo funciona (y por qué así)
 
-La misma API key de inferencia autentica `cloud-api.nan.builders`, el backend del panel web de
-NaN, que es donde viven cuotas, consumo y billing. Esas rutas no están documentadas, aunque el CLI
+El consumo sale de la API oficial (`api.nan.builders/v1/usage`). Para lo demás, la misma API key
+autentica `cloud-api.nan.builders`, el backend del panel web de NaN, que es donde viven cuotas y
+billing (y el consumo de respaldo). Esas rutas no están documentadas, aunque el CLI
 oficial de NaN ya usa las mismas (`/auth/me`, `/metrics/usage`, `/agents/models`): pueden cambiar.
 Y a veces fallan a medias: `/api/billing` puede devolver `subscription: null` un rato aunque tengas
 suscripción; `billing` (y el comando del plugin) lo dicen tal cual en vez de inventar fechas. Reintenta.

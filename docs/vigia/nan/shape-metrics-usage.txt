@@ -1,0 +1,5 @@
+.<bucket>.byModel[].inputTokens int
+.<bucket>.byModel[].model str
+.<bucket>.byModel[].outputTokens int
+.<bucket>.cachedAt str
+.<bucket>.totalTokens int

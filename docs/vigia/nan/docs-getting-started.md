@@ -96,7 +96,7 @@ const resp = await client.chat.completions.create({
 console.log(resp.choices[0].message.content);
 ```
 
-There are more examples, including embeddings, speech, images and web search, in [Examples](/docs/examples).
+There are more examples, including embeddings, speech and images, in [Examples](/docs/examples).
 
 ### Choose your model
 
@@ -138,9 +138,18 @@ The full detail, endpoint by endpoint, is in the [API reference](/docs/api).
 
 Two limits are per API key and apply to everything you call: requests per minute, and requests at once.
 
-On top of those, some models carry one of their own: a tokens-per-minute ceiling on the big chat models, and a requests-per-minute one on `rerank`. `glm5.3` is not gated per minute at all, but by a rolling token window plus an allowance per billing period. Web search runs on a budget separate from the models'.
+On top of those, some models carry one of their own: a tokens-per-minute ceiling on the big chat models, and a requests-per-minute one on `rerank`. `glm5.3` is not gated per minute at all, but by a rolling token window plus an allowance per billing period. Image endpoints run on a budget separate from the models'.
 
 The current figures are at the end of [Models](/docs/models), which is where they are published so that no two versions of the same number go around.
+
+## Usage metrics
+
+The API can also tell you how much you have used: `GET /v1/usage` returns your own token usage per day and per model, with totals over the window you ask for. That window spans at most 90 days, and long ranges come back paginated: pass the `next_cursor` from one response back as `cursor` to get the next page. The response echoes the effective `start_date` and `end_date` it actually served, so you always know which window your totals cover. Every parameter is documented in the [API reference](/docs/api).
+
+```bash
+curl "https://api.nan.builders/v1/usage?start_date=2026-01-01&end_date=2026-01-31" \
+  -H "Authorization: Bearer $NAN_API_KEY"
+```
 
 ## Next steps
 

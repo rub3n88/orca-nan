@@ -1,11 +1,11 @@
 Usage & rate-limit tracking
-Orca tracks usage for Claude Code, Codex, Gemini, OpenCode, Kimi Code, and MiniMax and surfaces it in the status bar, so you know how close you are to a rate limit before an agent stalls.
+Orca tracks usage for Claude Code, Codex, Muse Code, Gemini, OpenCode, Kimi Code, and MiniMax and surfaces it in the status bar, so you know how close you are to a rate limit before an agent stalls.
 What's shown
 Current usage against the active account's plan.
 Time to reset for 5-hour, daily, weekly, and Claude Fable weekly windows (where applicable).
 A warning chip when you cross 80% of a limit.
 How it works
-The source depends on the provider. Orca reads local agent state where available; OpenCode Go usage comes from its console API and needs your full opencode.ai Cookie header, including __Host-console_session, under Settings → Accounts. An auth cookie alone can find workspaces but cannot fetch Go usage. Other providers can require their own account setup in Settings.
+The source depends on the provider. Orca reads local agent state where available, including Muse Code's local session logs; Muse usage is local token accounting and does not include a price estimate. OpenCode Go usage comes from its console API and needs your full opencode.ai Cookie header, including __Host-console_session, under Settings → Accounts. An auth cookie alone can find workspaces but cannot fetch Go usage. Other providers can require their own account setup in Settings.
 Multi-account accounting
 The status bar always reflects the active account. Other configured accounts are visible in the account switcher with their own usage.
 Usage roster
