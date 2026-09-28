@@ -46,8 +46,8 @@ Fuente: `stablyai/orca` en GitHub (`src/shared/plugins/*`, `src/main/plugins/*`,
   `source.kind: git` + `ref`) o carpeta de desarrollo (Settings → Plugins → Development). `.git` en
   la raíz queda fuera del hash de contenido; límite 50 MB.
 - Roster de uso de Orca (barra de estado): proveedores cableados en `src/main/rate-limits/*`
-  (`claude`, `codex`, `gemini`, `opencode-go`, `kimi`, `minimax`, `grok`, `antigravity`, y desde
-  2026-09-26 `cursor`, con `monthly` + `buckets` por pool de plan; la doc cita además Muse Code por
+  (`claude`, `codex`, `gemini`, `opencode-go`, `kimi`, `minimax`, `grok`, `antigravity`, desde
+  2026-09-26 `cursor`, con `monthly` + `buckets` por pool de plan, y desde 2026-09-28 `zcode`; la doc cita además Muse Code por
   logs locales). Sigue sin haber proveedor personalizable ni API de plugin para el roster. **MiniMax**
   es el precedente de proveedor remoto por credencial (cookie en Settings → Integrations), ~18
   ficheros no-test entre `main/rate-limits`, `shared/*-types` y settings.
