@@ -136,6 +136,12 @@ Fuente: `stablyai/orca` en GitHub (`src/shared/plugins/*`, `src/main/plugins/*`,
   `models.go` del CLI oficial: `max` 32K como mimo-v2.5) y `qwen-image-2.1` (texto→imagen,
   512–1280 px, **comparte** las 100 req/mes de imagen con `flux-2-klein`). Ambos en `MODEL_NOTES`;
   `qwen-image-2.1` fuera de los snippets de chat.
+- **`mimo-v2.5` sale de la doc (2026-09-29)**: `models`, `choose-a-model`, `api`, `examples` y las
+  guías de clientes (opencode, pi, vscode) lo quitan; para audio la doc solo recomienda
+  `mimo-v2.6-flash`. Pero `/v1/models` y `/usage/quota` lo siguen sirviendo (cap 1B). 0.2.4 lo deja en
+  `MODEL_NOTES` con la nota «fuera de la doc, usa mimo-v2.6-flash»; se quitará cuando desaparezca
+  de `/v1/models` (como glm5.2). El mismo día la doc de uso de Orca documentó el modo estrecho de
+  la barra de estado (chips `+N`, los ≥80 % se pliegan los últimos): prosa, sin efecto aquí.
 - Toda la doc de NaN tiene versión markdown en `https://nan.builders/api/docs/<slug>.md`, y el índice
   con hash por página en `https://nan.builders/api/docs/manifest.json`: es la señal que vigila el
   vigía, más fiable que el repo `helmcode/nan` (que sigue vivo, pero es la fuente, no lo publicado).

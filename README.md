@@ -92,8 +92,9 @@ presupuesto aparte (`flux-2-klein` y `qwen-image-2.1` comparten 100 req/mes, no 
 La línea `reasoning_effort` de cada modelo sale de la doc de NaN (2026-09-18): `glm5.3` y
 `glm5.3-flash` admiten `low`·`medium`·`high`·`max`; `qwen3.6` y `gemma4` además `none` y `minimal`
 (sin fase de razonamiento) y topan la fase en 2.048 / 8.192 / 16.384 / 32.768 tokens;
-`deepseek-v4-flash` razona por su cuenta e ignora el parámetro; `qwen3.8-flash`, `mimo-v2.5` y
-`mimo-v2.6-flash` lo aceptan pero gestionan su profundidad. Un valor que un modelo no aplica **no da error**. La traza
+`deepseek-v4-flash` razona por su cuenta e ignora el parámetro; `qwen3.8-flash` y
+`mimo-v2.6-flash` lo aceptan pero gestionan su profundidad (también `mimo-v2.5`, que la doc retiró el
+2026-09-29 aunque NaN lo sigue sirviendo). Un valor que un modelo no aplica **no da error**. La traza
 llega en `message.reasoning_content`, aparte de la respuesta.
 
 ## NaN Usage — el plugin de Orca

@@ -92,30 +92,6 @@ Premium tier: callable only with a key on the GLM 5.3 premium membership. \~753B
 - 262K token context
 - Streaming generation (SSE)
 
-### mimo-v2.5 - 310B-15B
-
-310B parameter MoE model (15B active), natively omnimodal with dedicated vision and audio encoders. 1M token context. Tool calling and reasoning. 1.0B token monthly quota per member. MIT license.
-
-**omnimodal — text, vision & audio**
-
-- Type: MoE (310B total · 15B active)
-- Quantization: FP8
-- Context: 1M tokens
-- Max answer: 131K tokens
-- Input modalities: text · image · audio
-- Output modalities: text
-- Monthly quota: 1.0B tokens / member
-- License: MIT
-
-**capabilities**
-
-- Tool calling (function calling)
-- Reasoning mode (recommended `max_tokens ≥ 300`)
-- Vision (image input)
-- Audio (audio input)
-- 1M token context
-- Streaming generation (SSE)
-
 ### mimo-v2.6-flash - omnimodal
 
 The newest Xiaomi MiMo, natively omnimodal with vision and audio input. 1M token context. Tool calling and reasoning. Same limits as mimo-v2.5: 1.0B token monthly quota per member.
@@ -305,13 +281,13 @@ model is allowed to think is a request parameter, `reasoning_effort`, and each
 model applies it differently — the table is the contract. A value a model
 cannot apply is never an error.
 
-| Model                                             | `reasoning_effort` values                         | What it does                                                                                                                            |
-| ------------------------------------------------- | ------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
-| `glm5.3` · `glm5.3-flash`                         | `low`, `medium`, `high`, `max`                    | Fully controllable. Higher values let the model reason longer before it answers; `max` is the deepest.                                  |
-| `qwen3.6`                                         | `none`, `minimal`, `low`, `medium`, `high`, `max` | `none` and `minimal` skip the reasoning phase entirely. The other four cap it: low 2,048, medium 8,192, high 16,384, max 32,768 tokens. |
-| `gemma4`                                          | `none`, `minimal`, `low`, `medium`, `high`, `max` | Same as `qwen3.6`: off, or a reasoning budget between 2,048 and 32,768 tokens.                                                          |
-| `deepseek-v4-flash`                               | any value (no effect)                             | The model decides per request how much to reason; the parameter never changes that.                                                     |
-| `qwen3.8-flash` · `mimo-v2.5` · `mimo-v2.6-flash` | accepted, depth not adjustable                    | The parameter is accepted and never rejected, but these models manage their own reasoning depth.                                        |
+| Model                               | `reasoning_effort` values                         | What it does                                                                                                                            |
+| ----------------------------------- | ------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
+| `glm5.3` · `glm5.3-flash`           | `low`, `medium`, `high`, `max`                    | Fully controllable. Higher values let the model reason longer before it answers; `max` is the deepest.                                  |
+| `qwen3.6`                           | `none`, `minimal`, `low`, `medium`, `high`, `max` | `none` and `minimal` skip the reasoning phase entirely. The other four cap it: low 2,048, medium 8,192, high 16,384, max 32,768 tokens. |
+| `gemma4`                            | `none`, `minimal`, `low`, `medium`, `high`, `max` | Same as `qwen3.6`: off, or a reasoning budget between 2,048 and 32,768 tokens.                                                          |
+| `deepseek-v4-flash`                 | any value (no effect)                             | The model decides per request how much to reason; the parameter never changes that.                                                     |
+| `qwen3.8-flash` · `mimo-v2.6-flash` | accepted, depth not adjustable                    | The parameter is accepted and never rejected, but these models manage their own reasoning depth.                                        |
 
 With no parameter, every model uses its own default (reasoning on for
 `qwen3.6` and `gemma4`, with a 16,384-token budget). More reasoning costs
@@ -369,7 +345,6 @@ stalled run.
 - glm5.3-flash: 7 (base plan) · 10 (premium plan)
 - deepseek-v4-flash: 7 (base plan) · 10 (premium plan)
 - qwen3.8-flash: 7 (base plan) · 10 (premium plan)
-- mimo-v2.5: 5
 - mimo-v2.6-flash: 5
 - qwen3.6: 5
 - gemma4: 5
@@ -388,7 +363,6 @@ Audio, embedding and rerank endpoints have no concurrency limit.
 **tokens / min per model**
 
 - deepseek-v4-flash: 1.5M tpm
-- mimo-v2.5: 1.5M tpm
 - mimo-v2.6-flash: 1.5M tpm
 - qwen3.6: 1.5M tpm
 - gemma4: 1.5M tpm
