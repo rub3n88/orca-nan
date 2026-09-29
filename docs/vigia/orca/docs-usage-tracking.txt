@@ -11,6 +11,7 @@ Multi-account accounting
 The status bar always reflects the active account. Other configured accounts are visible in the account switcher with their own usage.
 Usage roster
 Click the usage segment in the status bar to open the Usage popover. It lists every tracked provider (icon · name · plan · soonest reset · per-window bars), sorted so the tightest limit is first. Use the header refresh control to re-read local usage state.
+In a narrow window, the status bar keeps one line by hiding mini bars and labels, then showing one percentage per provider. If space is still tight, some provider chips become a +N chip. Click it to see every provider in the Usage popover. Providers at 80% usage or higher are collapsed last.
 Detailed — full bars, labels, and percentages for every window
 Compact — only the tightest window per provider
 Under Settings → Appearance, choose % used vs % remaining for how those numbers read.

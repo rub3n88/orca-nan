@@ -45,7 +45,7 @@ MODEL_NOTES = {
     "glm5.3-flash": {"name": "GLM 5.3 Flash", "ctx": 1048576, "max": 32768, "input": ["text", "image"], "effort": "low·medium·high·max", "note": "reasoning verboso por defecto · el de código sin premium"},
     "qwen3.8-flash": {"name": "Qwen 3.8 Flash", "ctx": 262144, "max": 32768, "input": ["text", "image"], "effort": "se acepta, profundidad no ajustable", "note": "reasoning por defecto · respuesta máx 131K según doc"},
     "mimo-v2.6-flash": {"name": "Xiaomi MiMo V2.6 Flash", "ctx": 1048576, "max": 32768, "input": ["text", "image", "audio"], "effort": "se acepta, profundidad no ajustable", "note": "omnimodal · el MiMo más nuevo · sin ficha en el CLI oficial (doc 2026-09-26; max como mimo-v2.5) · max_tokens ≥ 300 con reasoning"},
-    "mimo-v2.5": {"name": "Xiaomi MiMo V2.5", "ctx": 1048576, "max": 32768, "input": ["text", "image", "audio"], "effort": "se acepta, profundidad no ajustable", "note": "omnimodal · respuesta máx 131K según doc · max_tokens ≥ 300 con reasoning"},
+    "mimo-v2.5": {"name": "Xiaomi MiMo V2.5", "ctx": 1048576, "max": 32768, "input": ["text", "image", "audio"], "effort": "se acepta, profundidad no ajustable", "note": "omnimodal · fuera de la doc de NaN desde 2026-09-29 (sigue servido y con cuota): usa mimo-v2.6-flash · max_tokens ≥ 300 con reasoning"},
     "gemma4": {"name": "Gemma 4", "ctx": 262144, "max": 65536, "input": ["text", "image"], "effort": "none·minimal·low…max (2K–32K)", "note": "multimodal · reasoning on por defecto (16K)"},
     "qwen3.6": {"name": "Qwen 3.6", "ctx": 262144, "max": 65536, "input": ["text", "image"], "effort": "none·minimal·low…max (2K–32K)", "note": "generación anterior (doc: empieza por deepseek-v4-flash)"},
     "glm5.3": {"name": "GLM 5.3 (premium)", "ctx": 1048576, "max": 32768, "input": ["text"], "effort": "low·medium·high·max", "note": "premium · solo texto · 3B/periodo de facturación · ventana 4h 400M"},
@@ -58,6 +58,8 @@ MODEL_NOTES = {
     "qwen-image-2.1": {"name": "Qwen Image 2.1", "ctx": 0, "input": ["text"], "note": "imagen texto→imagen (texto limpio dentro) · 100 req/mes compartidas con flux-2-klein"},
 }
 # glm5.2 (2026-09-16): ya no sale en /v1/models ni en la doc; lo sustituye glm5.3.
+# mimo-v2.5 (2026-09-29): la doc lo retira en favor de mimo-v2.6-flash, pero /v1/models y la
+# cuota lo siguen sirviendo; se queda en la ficha hasta que desaparezca de /v1/models.
 # Sigue apareciendo en /api/usage/quota con cap y ventana 4h: se muestra tal cual.
 # `effort` (doc de 2026-09-18, /docs/models «Controlling reasoning» y /docs/api): qué hace cada
 # modelo con `reasoning_effort`. Un valor que un modelo no aplica nunca da error, solo se ignora.
