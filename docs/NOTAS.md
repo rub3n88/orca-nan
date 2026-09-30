@@ -80,7 +80,7 @@ Fuente: `stablyai/orca` en GitHub (`src/shared/plugins/*`, `src/main/plugins/*`,
   y embeddings: un `—` en `nan-usage models` es eso, no un error.
 - **Ficha de modelos (2026-09-16)**: la fuente más fiable es `internal/models/models.go` del CLI
   oficial (medida por NaN contra el proxy el 2026-09-11): deepseek-v4-flash 1M ctx · out 32K ·
-  text+image (Vision-Exp) · glm5.3-flash 1M · 32K · text+image · qwen3.8-flash 262K · 32K ·
+  text+image (Vision-Exp) · glm5.3-flash 1M · 32K · text+image · qwen3.8-flash 262K (1M según la doc desde 2026-09-30) · 32K ·
   text+image · mimo-v2.5 1M · 32K · text+image+audio · gemma4 262K · 64K · text+image · qwen3.6
   262K · 64K · text+image («generación anterior») · glm5.3 (premium) 1M · 32K · solo texto. La doc
   (`/docs/models`) añade «Max answer 131K» a qwen3.8-flash y mimo-v2.5 (`max` en `MODEL_NOTES` usa
@@ -142,6 +142,15 @@ Fuente: `stablyai/orca` en GitHub (`src/shared/plugins/*`, `src/main/plugins/*`,
   `MODEL_NOTES` con la nota «fuera de la doc, usa mimo-v2.6-flash»; se quitará cuando desaparezca
   de `/v1/models` (como glm5.2). El mismo día la doc de uso de Orca documentó el modo estrecho de
   la barra de estado (chips `+N`, los ≥80 % se pliegan los últimos): prosa, sin efecto aquí.
+- **`mimo-v2.5` retirado del todo y `qwen3.8-flash` a 1M (2026-09-30)**: `mimo-v2.5` sale de
+  `/v1/models` y `/usage/quota` lo sigue listando con **cap 0** (remaining negativo si se usó). 0.2.5
+  lo quita de `MODEL_NOTES`; `nan-usage quota` marca las filas con cap 0 como «retirado (cap 0)»,
+  `status` y el plugin (`nan-quota`, aviso del 80 %) las ignoran. `qwen3.8-flash` pasa a 1M de
+  contexto (1.048.576) en `/docs/models`, `choose-a-model`, `api` y las guías de clientes (pi,
+  opencode…); el `models.go` del CLI oficial sigue con 262.144, se toma la doc. La doc de
+  `deepseek-v4-flash` añade salida estructurada: `json_object` sí (el prompt debe contener «JSON»),
+  `json_schema` → 400 (usar una tool forzada o qwen3.6/gemma4), y `max_tokens` < 16.384 se sube a
+  16.384. Van en la nota de `MODEL_NOTES`. cloud-api añade `/api/admin/coupons` (admin, sin efecto).
 - Toda la doc de NaN tiene versión markdown en `https://nan.builders/api/docs/<slug>.md`, y el índice
   con hash por página en `https://nan.builders/api/docs/manifest.json`: es la señal que vigila el
   vigía, más fiable que el repo `helmcode/nan` (que sigue vivo, pero es la fuente, no lo publicado).

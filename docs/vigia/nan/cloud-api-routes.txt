@@ -2,6 +2,8 @@
 /api/account/discord/unlink
 /api/account/email/request
 /api/account/profile
+/api/admin/coupons
+/api/admin/coupons/
 /api/admin/discount-programs
 /api/admin/discounts
 /api/admin/discounts/

@@ -29,7 +29,7 @@ Premium tier: callable only with a key on the GLM 5.3 premium membership. \~753B
 
 ### deepseek-v4-flash - 305B MoE
 
-305B parameter MoE model, served as the Vision-Exp variant: it takes images as input. 1M token context. Tool calling and reasoning. 3B token monthly quota per member.
+305B parameter MoE model, served as the Vision-Exp variant: it takes images as input. 1M token context. Tool calling and reasoning. 3B token monthly quota per member. Structured output: response\_format json\_object is supported (the prompt must contain the word JSON, otherwise it is rejected with a 400), json\_schema is not and is rejected with a 400. json\_object guarantees syntactically valid JSON only, not its shape: describe the schema in the prompt. For schema-constrained output, use qwen3.6 or gemma4, where json\_schema with strict constrains fields, types and required keys; or, on this model, force one function tool whose parameters is your schema (see Examples). A max\_tokens below 16384 is raised to 16384 so the reasoning fits, so a prompt within 16384 tokens of the 1,048,576-token window is rejected with a 400 even with a small max\_tokens (usually Context length exceeded, sometimes a generic Invalid request).
 
 **text generation, chat & vision**
 
@@ -45,6 +45,7 @@ Premium tier: callable only with a key on the GLM 5.3 premium membership. \~753B
 - Tool calling
 - Reasoning mode (adaptive — not level-adjustable)
 - Vision (image input)
+- JSON mode (`json_object`, the prompt must mention JSON) · `json_schema` not supported (400)
 - 1M token context
 - Streaming generation (SSE)
 
@@ -72,12 +73,12 @@ Premium tier: callable only with a key on the GLM 5.3 premium membership. \~753B
 
 ### qwen3.8-flash - 125B-6B
 
-125B parameter MoE model (6B active), multimodal with vision, tool calling and reasoning on by default. 262K token context, the model's native window. 500M token monthly quota per member.
+125B parameter MoE model (6B active), multimodal with vision, tool calling and reasoning on by default. 1M token context (1,048,576 tokens). 500M token monthly quota per member.
 
 **text generation, chat & vision**
 
 - Type: MoE (125B total · 6B active)
-- Context: 262K tokens
+- Context: 1M tokens
 - Max answer: 131K tokens
 - Input modalities: text · image
 - Output modalities: text
@@ -89,12 +90,12 @@ Premium tier: callable only with a key on the GLM 5.3 premium membership. \~753B
 - Tool calling (XML format)
 - Reasoning mode (on by default)
 - Vision (image input)
-- 262K token context
+- 1M token context
 - Streaming generation (SSE)
 
 ### mimo-v2.6-flash - omnimodal
 
-The newest Xiaomi MiMo, natively omnimodal with vision and audio input. 1M token context. Tool calling and reasoning. Same limits as mimo-v2.5: 1.0B token monthly quota per member.
+The newest Xiaomi MiMo, natively omnimodal with vision and audio input. 1M token context. Tool calling and reasoning. 1.0B token monthly quota per member.
 
 **omnimodal — text, vision & audio**
 
