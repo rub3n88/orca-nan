@@ -3,7 +3,6 @@ flux-2-klein
 gemma4
 glm5.3-flash
 kokoro
-mimo-v2.5
 mimo-v2.6-flash
 minimax-h3
 qwen-image-2.1

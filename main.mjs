@@ -101,8 +101,9 @@ const daysLeft = (iso) => Math.max(0, Math.ceil((new Date(iso).getTime() - Date.
 function quotaLines(quota) {
   // El premium (glm5.3; antes glm5.2) lleva ventana rodante de 4h además de la
   // cuota por periodo: se enseña siempre, es lo que un agente de código se come primero.
+  // cap 0 = modelo retirado (mimo-v2.5 desde 2026-09-30): fuera, no hay cuota que vigilar.
   return quota.models
-    .filter((m) => m.tokensUsed > 0 || m.windowHours)
+    .filter((m) => m.cap > 0 && (m.tokensUsed > 0 || m.windowHours))
     .sort((a, b) => pct(b.tokensUsed, b.cap) - pct(a.tokensUsed, a.cap))
     .map((m) => {
       const p = Math.round(pct(m.tokensUsed, m.cap) * 100)
