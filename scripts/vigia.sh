@@ -85,10 +85,12 @@ def walk(o,p=""):
     if isinstance(o,dict):
         for k in sorted(o): walk(o[k],p+"."+k)
     elif isinstance(o,list):
-        if o: walk(o[0],p+"[]")
+        # Todas las filas, no solo la primera: las claves opcionales (ventana, updatedAt) no
+        # deben bailar según qué modelo salga primero. El sort -u funde los repetidos.
+        for x in o: walk(x,p+"[]")
     else: print(p, type(o).__name__)
 try: walk(json.load(sys.stdin))
-except Exception as e: print("error", e)'; }
+except Exception as e: print("error", e)' | sort -u; }
 # Nuestro script, por ruta: `nan` a secas en el PATH es (o será) el CLI oficial de NaN.
 NU="$ROOT/bin/nan-usage"
 if "$NU" --json quota > "$TMP/quota.json" 2>/dev/null; then

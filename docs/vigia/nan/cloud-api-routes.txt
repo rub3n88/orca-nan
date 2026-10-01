@@ -85,6 +85,7 @@
 /api/videos/tags
 /api/videos/upload-status/
 /api/videos/upload-url
+/api/waitlist/signup
 /api/workspaces
 /api/workspaces/
 /api/workspaces/slots

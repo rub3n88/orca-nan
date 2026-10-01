@@ -47,7 +47,7 @@ MODEL_NOTES = {
     "mimo-v2.6-flash": {"name": "Xiaomi MiMo V2.6 Flash", "ctx": 1048576, "max": 32768, "input": ["text", "image", "audio"], "effort": "se acepta, profundidad no ajustable", "note": "omnimodal · el MiMo más nuevo · sin ficha en el CLI oficial (doc 2026-09-26; max como el retirado mimo-v2.5) · max_tokens ≥ 300 con reasoning"},
     "gemma4": {"name": "Gemma 4", "ctx": 262144, "max": 65536, "input": ["text", "image"], "effort": "none·minimal·low…max (2K–32K)", "note": "multimodal · reasoning on por defecto (16K)"},
     "qwen3.6": {"name": "Qwen 3.6", "ctx": 262144, "max": 65536, "input": ["text", "image"], "effort": "none·minimal·low…max (2K–32K)", "note": "generación anterior (doc: empieza por deepseek-v4-flash)"},
-    "glm5.3": {"name": "GLM 5.3 (premium)", "ctx": 1048576, "max": 32768, "input": ["text"], "effort": "low·medium·high·max", "note": "premium · solo texto · 3B/periodo de facturación · ventana 4h 400M"},
+    "glm5.3": {"name": "GLM 5.3 (premium)", "ctx": 1048576, "max": 32768, "input": ["text", "image", "audio", "video"], "effort": "low·medium·high·max", "note": "premium · multimodal (imagen, audio y vídeo desde 2026-10-01; el único con vídeo) · 3B/periodo de facturación · ventana 4h 400M"},
     "minimax-h3": {"name": "MiniMax H3", "ctx": 0, "input": ["text"], "note": "sin ficha en la doc ni en el CLI oficial: valores conservadores"},
     "qwen3-embedding": {"name": "Qwen3 Embedding", "ctx": 0, "input": ["text"], "note": "embeddings 4096d"},
     "rerank": {"name": "Rerank", "ctx": 0, "input": ["text"], "note": "reranker"},
@@ -414,7 +414,8 @@ def cmd_config(as_json, args):
             "baseUrl": INFERENCE, "apiKey": k, "api": "openai-completions",
             "models": [{
                 "id": m, "name": MODEL_NOTES.get(m, {}).get("name", m), "reasoning": True,
-                "input": MODEL_NOTES.get(m, {}).get("input", ["text"]),
+                # Pi solo admite "text" e "image"; otro valor le hace rechazar el fichero entero.
+                "input": [i for i in MODEL_NOTES.get(m, {}).get("input", ["text"]) if i in ("text", "image")],
                 "contextWindow": MODEL_NOTES.get(m, {}).get("ctx") or 131072,
                 "maxTokens": MODEL_NOTES.get(m, {}).get("max") or 16384,
             } for m in models],

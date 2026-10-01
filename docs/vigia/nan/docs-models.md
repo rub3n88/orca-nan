@@ -5,15 +5,15 @@ with the same `base URL`.
 
 ### glm5.3 - 753B MoE
 
-Premium tier: callable only with a key on the GLM 5.3 premium membership. \~753B parameter MoE model, focused on coding and long-horizon agentic tasks. 1M token context. Text in, text out: it does not take images. Tool calling and reasoning (emits a reasoning trace). 3,000M token quota per member, and the counter goes back to zero when your billing period starts. Also capped at 400M tokens per rolling 4h window, which is the limit a heavy coding-agent run reaches first.
+Premium tier: callable only with a key on the GLM 5.3 premium membership. \~753B parameter MoE model, focused on coding and long-horizon agentic tasks. 1M token context. Multimodal: it takes images, audio and video as well as text. Tool calling and reasoning (emits a reasoning trace). 3,000M token quota per member, and the counter goes back to zero when your billing period starts. Also capped at 400M tokens per rolling 4h window, which is the limit a heavy coding-agent run reaches first.
 
-**text generation & chat · agentic coding**
+**multimodal text generation & chat · agentic coding**
 
 - Type: MoE (\~753B total)
-- Quantization: FP8
+- Quantization: NVFP4
 - Attention: Sparse attention
 - Context: 1M tokens
-- Input modalities: text
+- Input modalities: text · image · audio · video
 - Output modalities: text
 - Allowance / billing period: 3,000M tokens / member
 - Rolling 4h window: 400M tokens
@@ -22,6 +22,9 @@ Premium tier: callable only with a key on the GLM 5.3 premium membership. \~753B
 
 - Tool calling (function calling)
 - Reasoning control (`reasoning_effort`: low · medium · high · max)
+- Vision (image input)
+- Audio (audio input)
+- Video (video input)
 - Coding and long-horizon agentic tasks
 - 1M token context
 - Streaming generation (SSE)

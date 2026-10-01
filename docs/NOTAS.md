@@ -158,6 +158,15 @@ Fuente: `stablyai/orca` en GitHub (`src/shared/plugins/*`, `src/main/plugins/*`,
   `internal/api/client.go` devuelva «session expired» ante un 401 con el `token` de login (la sesión
   caduca en el servidor sin que `session.json` lo sepa); nosotros solo leemos `apiKey`, así que no
   afecta. El resto (perfiles de Codex, precios en Costs, TUI) no toca `session.json` ni Pi.
+- **`glm5.3` multimodal (2026-10-01, tarde)**: `/docs/models`, `choose-a-model`, `api` y las guías
+  de clientes pasan `glm5.3` de «solo texto» a texto · imagen · audio · vídeo (el único que acepta
+  vídeo; cuantización FP8 → NVFP4). 0.2.6 lo pone en `MODEL_NOTES`. La guía de Pi avisa de que su
+  esquema solo admite `text`/`image` y que un tercer valor hace que Pi rechace el fichero entero: el
+  snippet de `config pi` ya llevaba `audio` en `mimo-v2.6-flash`, ahora filtra a `text`/`image`
+  (`config opencode` mantiene todas). `/usage/quota` añade `updatedAt` a las filas con consumo.
+  `shape()` del vigía recorría solo la primera fila de cada lista, y la shape de la cuota bailaba
+  según qué modelo saliera primero; ahora une las claves de todas las filas. cloud-api añade
+  `/api/waitlist/signup` (sin efecto).
 - Toda la doc de NaN tiene versión markdown en `https://nan.builders/api/docs/<slug>.md`, y el índice
   con hash por página en `https://nan.builders/api/docs/manifest.json`: es la señal que vigila el
   vigía, más fiable que el repo `helmcode/nan` (que sigue vivo, pero es la fuente, no lo publicado).
