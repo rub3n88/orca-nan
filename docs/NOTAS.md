@@ -151,6 +151,13 @@ Fuente: `stablyai/orca` en GitHub (`src/shared/plugins/*`, `src/main/plugins/*`,
   `deepseek-v4-flash` añade salida estructurada: `json_object` sí (el prompt debe contener «JSON»),
   `json_schema` → 400 (usar una tool forzada o qwen3.6/gemma4), y `max_tokens` < 16.384 se sube a
   16.384. Van en la nota de `MODEL_NOTES`. cloud-api añade `/api/admin/coupons` (admin, sin efecto).
+- **CLI oficial v0.1.22 y `mimo-v2.5` fuera de `/usage/quota` (2026-10-01)**: `/usage/quota` ya no
+  lista `mimo-v2.5` (ni con cap 0); el filtro de cap 0 se queda para el próximo retirado. El cambio en
+  `shape-quota.txt` (sale `updatedAt`, entran `windowHours`/`fullWindowTokens`) es solo porque la
+  primera fila ya no es la del retirado: los dos campos de ventana ya se leían. v0.1.22 hace que
+  `internal/api/client.go` devuelva «session expired» ante un 401 con el `token` de login (la sesión
+  caduca en el servidor sin que `session.json` lo sepa); nosotros solo leemos `apiKey`, así que no
+  afecta. El resto (perfiles de Codex, precios en Costs, TUI) no toca `session.json` ni Pi.
 - Toda la doc de NaN tiene versión markdown en `https://nan.builders/api/docs/<slug>.md`, y el índice
   con hash por página en `https://nan.builders/api/docs/manifest.json`: es la señal que vigila el
   vigía, más fiable que el repo `helmcode/nan` (que sigue vivo, pero es la fuente, no lo publicado).
