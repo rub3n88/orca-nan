@@ -76,7 +76,9 @@ error). `config` genera los snippets con los modelos que hay *ahora*, no con una
 recuerda que el CLI oficial ya configura OpenCode/Codex/Pi/droid/Hermes por sí solo. Ojo con
 `config pi`: si usas `@gtrabanco/pi-nan-provider`, el bloque `providers.nan` lo genera la extensión
 (o pi-fleet) con los `compat` que necesita; ni este snippet ni el Setup del oficial —que reemplaza
-`providers.nan` entero— deben pisarlo.
+`providers.nan` entero— deben pisarlo. Pi solo admite `text` e `image` en `input` (con otro valor rechaza el
+fichero entero), así que `config pi` deja fuera el audio de `mimo-v2.6-flash` y el audio y vídeo de
+`glm5.3`; `config opencode` sí los lleva.
 
 `usage` lee el endpoint **oficial** `GET /v1/usage` de NaN (desde el 2026-09-26): tokens y
 peticiones por día UTC y modelo, más el total histórico. Si falla, cae a la ruta no documentada de
