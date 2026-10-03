@@ -44,6 +44,7 @@
 /api/billing/migrate-currency
 /api/billing/portal
 /api/billing/upgrade-premium
+/api/billing/workspace-subscriptions
 /api/community/signup
 /api/github/installations
 /api/github/installations/
@@ -88,5 +89,7 @@
 /api/waitlist/signup
 /api/workspaces
 /api/workspaces/
+/api/workspaces/catalog
+/api/workspaces/create-preview
 /api/workspaces/slots
 /api/workspaces/slots/checkout
