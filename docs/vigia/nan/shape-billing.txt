@@ -29,3 +29,4 @@
 .me.tier str
 .me.userUUID str
 .me.username str
+.me.workspaces_beta bool

@@ -51,6 +51,8 @@ Fuente: `stablyai/orca` en GitHub (`src/shared/plugins/*`, `src/main/plugins/*`,
   logs locales). Sigue sin haber proveedor personalizable ni API de plugin para el roster. **MiniMax**
   es el precedente de proveedor remoto por credencial (cookie en Settings → Integrations), ~18
   ficheros no-test entre `main/rate-limits`, `shared/*-types` y settings.
+  Desde 2026-10-05 `RateLimitState.extraUsage` (saldo de overage/pago por uso, en moneda o en
+  créditos): otro campo del roster nativo, sin efecto para un plugin.
 
 ### NaN
 

@@ -52,7 +52,6 @@
 /api/images/
 /api/images/generate
 /api/keys
-/api/keys/link
 /api/keys/rotate
 /api/marketplace/
 /api/marketplace/catalog

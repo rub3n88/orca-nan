@@ -76,7 +76,11 @@ fetch https://raw.githubusercontent.com/helmcode/nan-cli/main/internal/models/mo
 say "NaN: rutas del backend cloud-api (bundle del SPA) y forma de las respuestas"
 idx=$(curl -sL --max-time 20 https://cloud.nan.builders/ | grep -o '/assets/index-[A-Za-z0-9_-]*\.js' | head -1)
 if [ -n "$idx" ]; then
-  curl -sL --max-time 30 "https://cloud.nan.builders$idx" | grep -oE '["`'"'"'](/api/[a-zA-Z0-9/_.:-]*)' | tr -d '"`'"'" | sed 's/\$.*//' | sort -u > "$TMP/nan-cloud-api-routes.txt"
+  # El bundle pesa ~2,5 MB: con -f y a fichero, una descarga cortada por --max-time no se lee
+  # como «han quitado rutas» (2026-10-05 salió truncado y perdía la mitad).
+  curl -sfL --max-time 90 "https://cloud.nan.builders$idx" -o "$TMP/cloud-bundle.js" \
+    && grep -oE '["`'"'"'](/api/[a-zA-Z0-9/_.:-]*)' "$TMP/cloud-bundle.js" | tr -d '"`'"'" | sed 's/\$.*//' | sort -u > "$TMP/nan-cloud-api-routes.txt" \
+    || echo "  (no pude bajar el bundle completo de cloud.nan.builders; se salta cloud-api-routes)"
 fi
 # Forma (solo claves) de las respuestas que usa el plugin; nunca valores.
 shape() { python3 -c '
