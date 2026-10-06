@@ -68,7 +68,8 @@ Fuente: `stablyai/orca` en GitHub (`src/shared/plugins/*`, `src/main/plugins/*`,
   - `GET /api/billing` → `subscription{status, currentPeriodStart/End (epoch), premium,
     cancelAtPeriodEnd, currency}`.
   - `GET /api/auth/me` → handle, tier, región, namespace, features.
-  - `GET /api/keys`, `/api/agents`, `/api/apps`, `/api/spaces`, `/api/agents/models`.
+  - `GET /api/keys`, `/api/apps`, `/api/spaces`, `/api/agents/models` (`/api/agents` y la página
+    `agents` de la doc desaparecen el 2026-10-06).
   - `GET /api/projects` (público), `POST /api/projects` (name, description, imageUrl, appUrl,
     repoUrl, tags ⊂ {agents, tools, mcp, websites, automation, ai, data, voice, api}); solo tier
     inference. Es la sección «Projects» de nan.builders.

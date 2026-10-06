@@ -30,8 +30,6 @@
 /api/admin/waitlist/remind
 /api/admin/waitlist/remind-registered
 /api/admin/waitlist/state
-/api/agents
-/api/agents/
 /api/agents/models
 /api/apps
 /api/apps/
