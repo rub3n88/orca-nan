@@ -90,3 +90,4 @@
 /api/workspaces/create-preview
 /api/workspaces/slots
 /api/workspaces/slots/checkout
+/api/workspaces/software/catalog

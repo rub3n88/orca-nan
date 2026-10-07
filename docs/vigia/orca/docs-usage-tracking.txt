@@ -1,5 +1,5 @@
 Usage & rate-limit tracking
-Orca tracks usage for Claude Code, Codex, Muse Code, Gemini, Antigravity, OpenCode, Kimi Code, MiniMax, Cursor, and ZCode and surfaces it in the status bar, so you know how close you are to a rate limit before an agent stalls.
+Orca tracks usage for Claude Code, Codex, Muse Code, Gemini, Antigravity, OpenCode, Kimi Code, MiniMax, Cursor, ZCode, and GLM Coding Plans and surfaces it in the status bar, so you know how close you are to a rate limit before an agent stalls.
 What's shown
 Current usage against the active account's plan.
 Time to reset for 5-hour, daily, weekly, and Claude Fable weekly windows (where applicable).
@@ -8,6 +8,7 @@ How it works
 The source depends on the provider. Orca reads local agent state where available, including Muse Code's local session logs; Muse usage is local token accounting and does not include a price estimate. OpenCode Go usage comes from its console API and needs your full opencode.ai Cookie header, including __Host-console_session, under Settings → Accounts. An auth cookie alone can find workspaces but cannot fetch Go usage. Other providers can require their own account setup in Settings.
 For Cursor, Orca reads the existing Cursor sign-in on your computer and shows the plan's monthly usage in the status bar, Usage popover, and Settings → Accounts → Cursor. It does not sign you in; if the saved session expires, run cursor-agent login. A refused usage request reads as a usage failure, not an expired login.
 For Antigravity, Orca reads the quota from Antigravity's own CLI — including its model-group pools — so you do not need a signed-in Gemini CLI, and checking does not spend quota. For ZCode, the Coding Plan quota appears alongside the session history it reads from on-disk transcripts.
+You can also link a GLM Coding Plan directly under Settings → Accounts → GLM Coding Plan: pick the plan site (Z.AI or Zhipu BigModel) and save the plan API key. No ZCode CLI sign-in is required, and a saved key takes priority over the ZCode CLI sign-in. The plan appears in the usage roster like any other provider.
 Multi-account accounting
 The status bar always reflects the active account. Other configured accounts are visible in the account switcher with their own usage.
 Usage roster
