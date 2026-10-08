@@ -1,5 +1,1 @@
-.<bucket>.byModel[].inputTokens int
-.<bucket>.byModel[].model str
-.<bucket>.byModel[].outputTokens int
-.<bucket>.cachedAt str
-.<bucket>.totalTokens int
+nan-usage: /api/metrics/usage → HTTP 401 session_required (cloud-api ya no acepta la API key aquí: pide sesión del panel)

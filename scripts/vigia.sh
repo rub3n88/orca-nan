@@ -104,9 +104,11 @@ if "$NU" --json quota > "$TMP/quota.json" 2>/dev/null; then
   # cloud-api /api/metrics/usage, el respaldo. Los cuatro buckets (last24h, last30d, monthToDate,
   # allTime) comparten forma; se funden en `<bucket>` para que un `byModel` vacío (sin consumo en
   # 24h) no cuente como cambio de forma.
-  "$NU" --json usage cloud 2>/dev/null | shape | grep -v '^\.timeSeries' \
+  # Si la ruta falla, se guarda el error de nan-usage (p. ej. 401 session_required) y no la forma.
+  shape_or_err() { local out; out=$("$NU" --json "$@" 2>"$TMP/nu-err") && printf '%s' "$out" | shape || cat "$TMP/nu-err"; }
+  shape_or_err usage cloud | grep -v '^\.timeSeries' \
     | sed -E 's/^\.(last24h|last30d|monthToDate|allTime)\./.<bucket>./' | sort -u > "$TMP/nan-shape-metrics-usage.txt"
-  "$NU" --json billing 2>/dev/null | shape > "$TMP/nan-shape-billing.txt"
+  shape_or_err billing > "$TMP/nan-shape-billing.txt"
   "$NU" --json models 2>/dev/null | python3 -c 'import json,sys; print("\n".join(sorted(json.load(sys.stdin)["models"])))' > "$TMP/nan-models-live.txt" 2>/dev/null
   # Cuotas (cap por modelo): son parte del contrato, no datos personales.
   python3 -c 'import json,sys; [print(m["model"], m["cap"], "window" if m.get("windowHours") else "") for m in sorted(json.load(sys.stdin)["models"], key=lambda m: m["model"])]' < "$TMP/quota.json" > "$TMP/nan-quota-caps.txt" 2>/dev/null

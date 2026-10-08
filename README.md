@@ -82,7 +82,8 @@ fichero entero), así que `config pi` deja fuera el audio de `mimo-v2.6-flash` y
 
 `usage` lee el endpoint **oficial** `GET /v1/usage` de NaN (desde el 2026-09-26): tokens y
 peticiones por día UTC y modelo, más el total histórico. Si falla, cae a la ruta no documentada de
-cloud-api (`/api/metrics/usage`, 24h rodantes) y lo dice; `nan-usage usage cloud` la fuerza. La
+cloud-api (`/api/metrics/usage`, 24h rodantes) y lo dice; `nan-usage usage cloud` la fuerza (desde el
+2026-10-08 esa ruta pide sesión del panel, así que el respaldo ya no responde con API key). La
 **cuota** (cap, restante, reset, ventana 4h) no está en la API oficial: `quota`, `status` y el aviso
 del 80 % siguen leyendo cloud-api.
 
@@ -141,12 +142,12 @@ usa ⌘J). Se puede cambiar en Settings → Shortcuts, grupo «Plugins».
 
 ## Cómo funciona (y por qué así)
 
-El consumo sale de la API oficial (`api.nan.builders/v1/usage`). Para lo demás, la misma API key
-autentica `cloud-api.nan.builders`, el backend del panel web de NaN, que es donde viven cuotas y
-billing (y el consumo de respaldo). Esas rutas no están documentadas, aunque el CLI
-oficial de NaN ya usa las mismas (`/auth/me`, `/metrics/usage`, `/agents/models`): pueden cambiar.
-Y a veces fallan a medias: `/api/billing` puede devolver `subscription: null` un rato aunque tengas
-suscripción; `billing` (y el comando del plugin) lo dicen tal cual en vez de inventar fechas. Reintenta.
+El consumo sale de la API oficial (`api.nan.builders/v1/usage`). La cuota sale de
+`cloud-api.nan.builders/api/usage/quota`, el backend del panel web de NaN, con la misma API key; la
+ruta no está documentada y puede cambiar. **Desde el 2026-10-08 cloud-api solo acepta la API key en
+esa ruta**: el resto (`/api/billing`, `/api/auth/me`, `/api/metrics/usage`, `/api/agents/models`)
+responde `401 session_required` («API keys only work for inference»). Por eso `billing` (y el comando
+del plugin) y el respaldo `usage cloud` fallan con ese motivo, y `models` va sin el modo del agente.
 
 El sistema de plugins de Orca (v0) no tiene barra de estado, ni canal worker → panel, ni permiso de
 red declarable todavía. De ahí el reparto: el worker (Node, fuera de proceso) hace las llamadas y

@@ -124,6 +124,18 @@ def HEADERS():
     return {"Authorization": f"Bearer {key()}", "User-Agent": "nan-usage/0.2 (+https://github.com/rub3n88/orca-nan)"}
 
 
+# cloud-api, desde el 2026-10-08, solo acepta la API key en /api/usage/quota; el resto responde
+# 401 {"error": "session_required"} ("API keys only work for inference").
+def why(e):
+    try:
+        code = json.loads(e.read() or b"{}").get("error", "")
+    except (json.JSONDecodeError, AttributeError, OSError):
+        return ""
+    if code == "session_required":
+        return " session_required (cloud-api ya no acepta la API key aquí: pide sesión del panel)"
+    return f" {code}" if code else ""
+
+
 def fetch(base, path, timeout=20):
     """GET JSON; lanza RuntimeError("<ruta> → <motivo>") si falla."""
     req = urllib.request.Request(base + path, headers=HEADERS())
@@ -131,7 +143,7 @@ def fetch(base, path, timeout=20):
         with urllib.request.urlopen(req, timeout=timeout) as r:
             return json.load(r)
     except urllib.error.HTTPError as e:
-        raise RuntimeError(f"{path.split('?')[0]} → HTTP {e.code}")
+        raise RuntimeError(f"{path.split('?')[0]} → HTTP {e.code}{why(e)}")
     except (urllib.error.URLError, TimeoutError) as e:
         raise RuntimeError(f"{path.split('?')[0]} → {getattr(e, 'reason', e)}")
     except json.JSONDecodeError:
@@ -257,7 +269,11 @@ def print_official_usage(u):
 def cmd_models(as_json):
     live = [m["id"] for m in get(INFERENCE, "/models")["data"]]
     quota = {m["model"]: m for m in get(CLOUD, "/api/usage/quota")["models"]}
-    modes = {m["name"]: m.get("mode", "") for m in get(CLOUD, "/api/agents/models").get("models", [])}
+    # /api/agents/models pide sesión desde el 2026-10-08: el modo es opcional.
+    try:
+        modes = {m["name"]: m.get("mode", "") for m in fetch(CLOUD, "/api/agents/models").get("models", [])}
+    except RuntimeError:
+        modes = {}
     if as_json:
         effort = {m: MODEL_NOTES[m]["effort"] for m in live if MODEL_NOTES.get(m, {}).get("effort")}
         return {"models": live, "quota": quota, "modes": modes, "reasoningEffort": effort}

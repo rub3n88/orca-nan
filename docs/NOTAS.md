@@ -52,7 +52,9 @@ Fuente: `stablyai/orca` en GitHub (`src/shared/plugins/*`, `src/main/plugins/*`,
   es el precedente de proveedor remoto por credencial (cookie en Settings → Integrations), ~18
   ficheros no-test entre `main/rate-limits`, `shared/*-types` y settings.
   Desde 2026-10-05 `RateLimitState.extraUsage` (saldo de overage/pago por uso, en moneda o en
-  créditos): otro campo del roster nativo, sin efecto para un plugin.
+  créditos): otro campo del roster nativo, sin efecto para un plugin. Desde 2026-10-08 la doc cita
+  saldos de crédito por proveedor (Claude, OpenCode Zen, Codex) junto a los límites: tampoco abre
+  nada a plugins.
 
 ### NaN
 
@@ -120,6 +122,14 @@ Fuente: `stablyai/orca` en GitHub (`src/shared/plugins/*`, `src/main/plugins/*`,
   `~/.config/nan/env`, así que nuestra cadena de lectura sigue igual: tras un logout solo desaparece
   el último eslabón. El Setup de Pi sigue reemplazando `providers.nan` entero, pero ya no reescribe
   un `models.json` que no parsea. `models.go` sin cambios. Los clientes HTTP llevan timeout de 30 s.
+- **cloud-api cierra la API key (2026-10-08)**: todas las rutas salvo `/api/usage/quota` responden
+  `401 {"error":"session_required","message":"This endpoint requires a signed-in session. API keys
+  only work for inference (https://api.nan.builders/v1)."}`: `/api/auth/me`, `/api/billing`,
+  `/api/metrics/usage`, `/api/agents/models`, `/api/namespace/quota`, `/api/keys`… Efecto:
+  `nan-usage billing` y `nan-billing` del plugin dejan de funcionar (lo dicen con el código del
+  error); el respaldo de `usage` por cloud-api también; `models` pierde el `mode` de
+  `/api/agents/models` (opcional desde 0.2.7). Cuota, aviso del 80 % y consumo oficial siguen.
+  Si `/api/usage/quota` sigue el mismo camino, el aviso se queda sin fuente con API key.
 - **cloud-api es inestable a ratos (2026-09-20)**: `/api/billing` devolvió `subscription: null` en una
   foto del vigía y un minuto después la suscripción completa. `nan-usage billing` y `nan-billing`
   del plugin lo tratan como «sin suscripción, reintenta» (antes: fechas de 1970). En
@@ -201,7 +211,8 @@ Fuente: `stablyai/orca` en GitHub (`src/shared/plugins/*`, `src/main/plugins/*`,
 1. Umbral y cooldown configurables vía `settings:own` cuando Orca tenga UI de settings de plugin.
 2. Ventana 4h de glm5.3 (antes glm5.2): hoy mostramos la cuota del periodo; el consumo de la ventana no viene en la API.
    Pedirlo a NaN o derivarlo de `timeSeries` (las filas de `/v1/usage` son diarias: no sirven para 4h).
-3. Aviso de renovación de periodo (`billing.currentPeriodEnd` a ≤ 2 días) en el mismo check.
+3. Aviso de renovación de periodo (`billing.currentPeriodEnd` a ≤ 2 días) en el mismo check
+   (bloqueado: `/api/billing` pide sesión desde 2026-10-08).
 4. `secrets` en vez de fichero cuando exista una vía de entrada (settings UI o comando con args).
 5. Declarar `net:fetch` en cuanto exista y re-consentir. Vigilar `PLUGIN_CAPABILITY_KINDS` en
    `src/shared/plugins/plugin-capabilities.ts`.
