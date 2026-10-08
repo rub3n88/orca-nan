@@ -49,7 +49,12 @@ async function getJson(base, path) {
       headers: { Authorization: `Bearer ${key}` },
       signal: controller.signal
     })
-    if (!res.ok) throw new Error(`${path.split('?')[0]} → HTTP ${res.status}`)
+    if (!res.ok) {
+      // cloud-api, desde el 2026-10-08: 401 session_required salvo en /api/usage/quota.
+      const code = String((await res.json().catch(() => ({}))).error ?? '')
+      const why = code === 'session_required' ? ' session_required (cloud-api ya no acepta la API key aquí)' : code ? ` ${code}` : ''
+      throw new Error(`${path.split('?')[0]} → HTTP ${res.status}${why}`)
+    }
     return await res.json()
   } finally {
     clearTimeout(timer)
@@ -167,7 +172,16 @@ export default function activate(orca) {
   })
 
   orca.commands.register('nan-billing', async () => {
-    const [b, me] = await Promise.all([api('/api/billing'), api('/api/auth/me')])
+    let b, me
+    try {
+      ;[b, me] = await Promise.all([api('/api/billing'), api('/api/auth/me')])
+    } catch (error) {
+      const msg = error instanceof Error ? error.message : String(error)
+      if (!msg.includes('session_required')) throw error
+      // Desde 2026-10-08 cloud-api pide sesión del panel para billing: se avisa en vez de fallar.
+      await notify(orca, 'NaN · suscripción no disponible', [msg, 'consúltala en cloud.nan.builders'])
+      return { ok: false, reason: 'session_required' }
+    }
     const s = b.subscription // cloud-api puede devolver null (transitorio, visto 2026-09-20)
     const end = s?.currentPeriodEnd ? new Date(s.currentPeriodEnd * 1000) : null
     await notify(orca, 'NaN · suscripción', [

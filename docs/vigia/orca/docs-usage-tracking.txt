@@ -4,6 +4,7 @@ What's shown
 Current usage against the active account's plan.
 Time to reset for 5-hour, daily, weekly, and Claude Fable weekly windows (where applicable).
 A warning chip when you cross 80% of a limit.
+Provider credit balances when the provider reports one — Claude usage credits, OpenCode Zen balance, and Codex credits — alongside the usage limits. A provider that returns no balance reads as unavailable rather than zero.
 How it works
 The source depends on the provider. Orca reads local agent state where available, including Muse Code's local session logs; Muse usage is local token accounting and does not include a price estimate. OpenCode Go usage comes from its console API and needs your full opencode.ai Cookie header, including __Host-console_session, under Settings → Accounts. An auth cookie alone can find workspaces but cannot fetch Go usage. Other providers can require their own account setup in Settings.
 For Cursor, Orca reads the existing Cursor sign-in on your computer and shows the plan's monthly usage in the status bar, Usage popover, and Settings → Accounts → Cursor. It does not sign you in; if the saved session expires, run cursor-agent login. A refused usage request reads as a usage failure, not an expired login.
@@ -13,7 +14,7 @@ Multi-account accounting
 The status bar always reflects the active account. Other configured accounts are visible in the account switcher with their own usage.
 Usage roster
 Click the usage segment in the status bar to open the Usage popover. It lists every tracked provider (icon · name · plan · soonest reset · per-window bars), sorted so the tightest limit is first. Use the header refresh control to re-read local usage state.
-In a narrow window, the status bar keeps one line by hiding mini bars and labels, then showing one percentage per provider. If space is still tight, some provider chips become a +N chip. Click it to see every provider in the Usage popover. Providers at 80% usage or higher are collapsed last.
+In a narrow window, the status bar keeps one line by hiding mini bars and labels, then showing one percentage per provider. If space is still tight, some provider chips become a +N chip. Click it to see every provider in the Usage popover. Providers at 80% usage or higher are collapsed last. When a provider reports a balance, it shows next to that provider's limits; in the narrow Compact segment, a provider that has hit a plan cap reveals its spendable balance.
 Detailed — full bars, labels, and percentages for every window
 Compact — only the tightest window per provider
 Under Settings → Appearance, choose % used vs % remaining for how those numbers read.
