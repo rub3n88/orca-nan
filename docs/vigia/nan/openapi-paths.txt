@@ -1,5 +1,14 @@
+GET /api/workspaces - List workspaces
+GET /api/workspaces/{id} - Retrieve a workspace
+GET /approvals - List approvals
 POST /audio/speech - Create speech
 POST /audio/transcriptions - Create transcription
+GET /automations - List automations
+GET /automations/templates - List templates
+GET /automations/{id} - Retrieve an automation
+GET /automations/{id}/deliveries - List webhook deliveries
+POST /automations/{id}/runs - Run an automation
+GET /automations/{id}/triggers - List triggers
 POST /chat/completions - Create chat completion
 POST /completions - Create completion
 POST /embeddings - Create embeddings
@@ -8,4 +17,11 @@ POST /images/generations - Create image
 GET /models - List models
 POST /rerank - Rerank documents
 POST /responses - Create response
+POST /runs - Create a run
+GET /runs - List runs
+GET /runs/{id} - Retrieve a run
+POST /runs/{id}/cancel - Cancel a run
+GET /runs/{id}/events - Follow a run's events
+GET /runs/{id}/proposal.diff - Download a proposal's diff
+POST /runs/{id}/reject - Reject a proposal
 GET /usage - Get usage

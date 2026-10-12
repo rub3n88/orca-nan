@@ -139,6 +139,33 @@ source ~/.zshrc
 
 On Linux with bash, the same command but against `~/.bashrc`.
 
+## Runs
+
+From v0.1.25 the CLI also starts agents on tasks inside your [workspaces](/docs/workspaces), and follows them from your terminal:
+
+```bash
+nan run "add tests for the date parser and make them pass"
+nan runs ls
+nan runs logs <id> -f
+```
+
+The run happens in the workspace, not on your machine, so it keeps going if you close the terminal. The runs commands use your `nan auth login` session, or a platform token from `NAN_TOKEN`, `--token-file` or `nan auth login --api-token` for scripts, CI and servers. Every flag, the authentication order, the exit codes and the API are in [Agent runs](/docs/runs).
+
+## Automations
+
+From v0.1.26 the CLI also lists and runs your [automations](/docs/automations), and shows the proposals waiting for your approval:
+
+```bash
+nan automations ls
+nan automations run "PR review" --input '{"pr": 42}'
+nan approvals ls
+nan runs proposal <run-id>
+nan runs reject <run-id>
+nan secrets ls
+```
+
+Creating or editing automations and triggers, writing secrets and approving proposals happen only in the portal, signed in through your browser: the CLI tells you where if you try. A run waiting for approval makes `nan run`, `nan runs logs -f` and `nan automations run` exit with code 10. The details are in [Automations](/docs/automations#from-the-terminal).
+
 ## Updating
 
 Run the installer again. It always brings the latest published release and overwrites the one you have:

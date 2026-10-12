@@ -122,6 +122,12 @@ Fuente: `stablyai/orca` en GitHub (`src/shared/plugins/*`, `src/main/plugins/*`,
   `~/.config/nan/env`, así que nuestra cadena de lectura sigue igual: tras un logout solo desaparece
   el último eslabón. El Setup de Pi sigue reemplazando `providers.nan` entero, pero ya no reescribe
   un `models.json` que no parsea. `models.go` sin cambios. Los clientes HTTP llevan timeout de 30 s.
+- **CLI oficial v0.1.24–v0.1.28: runs y automatizaciones (2026-10-12)**: `nan run`, `nan runs`,
+  `nan automations`, `nan approvals` y `nan secrets ls`; la openapi gana `/runs`, `/automations`,
+  `/approvals` y `/api/workspaces`, cloud-api `/api/account/{tokens,secrets}` y la doc las páginas
+  `runs`, `automations` y `webhooks`. Nada de uso, cuota ni billing. `session.json` añade
+  `platformToken` (los `nan_pat_` de `nan auth login --api-token`, que la inferencia rechaza) aparte
+  de `apiKey`, que no cambia: nuestra lectura sigue igual. `models.go` sin cambios.
 - **cloud-api cierra la API key (2026-10-08)**: todas las rutas salvo `/api/usage/quota` responden
   `401 {"error":"session_required","message":"This endpoint requires a signed-in session. API keys
   only work for inference (https://api.nan.builders/v1)."}`: `/api/auth/me`, `/api/billing`,

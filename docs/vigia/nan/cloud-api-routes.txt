@@ -2,6 +2,11 @@
 /api/account/discord/unlink
 /api/account/email/request
 /api/account/profile
+/api/account/secrets
+/api/account/secrets/
+/api/account/sessions/revoke-all
+/api/account/tokens
+/api/account/tokens/
 /api/admin/coupons
 /api/admin/coupons/
 /api/admin/discount-programs
