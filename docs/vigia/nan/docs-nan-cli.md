@@ -147,6 +147,7 @@ From v0.1.25 the CLI also starts agents on tasks inside your [workspaces](/docs/
 nan run "add tests for the date parser and make them pass"
 nan runs ls
 nan runs logs <id> -f
+nan run --byok-secret ANTHROPIC_KEY --model claude-sonnet-4-5 "fix the flaky test"   # v0.1.32+, your own provider key
 ```
 
 The run happens in the workspace, not on your machine, so it keeps going if you close the terminal. The runs commands use your `nan auth login` session, or a platform token from `NAN_TOKEN`, `--token-file` or `nan auth login --api-token` for scripts, CI and servers. Every flag, the authentication order, the exit codes and the API are in [Agent runs](/docs/runs).

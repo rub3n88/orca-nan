@@ -88,7 +88,8 @@ cloud-api (`/api/metrics/usage`, 24h rodantes) y lo dice; `nan-usage usage cloud
 del 80 % siguen leyendo cloud-api.
 
 `models` añade a cada modelo su ficha (contexto, modalidades, respuesta máxima, notas y qué hace con
-`reasoning_effort`), tomada de `internal/models/models.go` del CLI oficial y de la doc de NaN. Un `—` en la columna de cuota
+`reasoning_effort`), tomada de `internal/models/models.go` del CLI oficial y de la doc de NaN (desde el CLI v0.1.32 ambas
+coinciden: `qwen3.8-flash` a 1M y `mimo-v2.6-flash` con ficha). Un `—` en la columna de cuota
 significa que ese modelo no sale en `/usage/quota`: imagen, voz y embeddings van por un
 presupuesto aparte (`flux-2-klein` y `qwen-image-2.1` comparten 100 req/mes, no tokens).
 
