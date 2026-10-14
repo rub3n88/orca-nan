@@ -85,7 +85,7 @@ Fuente: `stablyai/orca` en GitHub (`src/shared/plugins/*`, `src/main/plugins/*`,
   y embeddings: un `—` en `nan-usage models` es eso, no un error.
 - **Ficha de modelos (2026-09-16)**: la fuente más fiable es `internal/models/models.go` del CLI
   oficial (medida por NaN contra el proxy el 2026-09-11): deepseek-v4-flash 1M ctx · out 32K ·
-  text+image (Vision-Exp) · glm5.3-flash 1M · 32K · text+image · qwen3.8-flash 262K (1M según la doc desde 2026-09-30) · 32K ·
+  text+image (Vision-Exp) · glm5.3-flash 1M · 32K · text+image · qwen3.8-flash 1M desde 2026-09-30 (262K hasta CLI v0.1.29) · 32K ·
   text+image · mimo-v2.5 1M · 32K · text+image+audio · gemma4 262K · 64K · text+image · qwen3.6
   262K · 64K · text+image («generación anterior») · glm5.3 (premium) 1M · 32K · solo texto. La doc
   (`/docs/models`) añade «Max answer 131K» a qwen3.8-flash y mimo-v2.5 (`max` en `MODEL_NOTES` usa
@@ -186,6 +186,11 @@ Fuente: `stablyai/orca` en GitHub (`src/shared/plugins/*`, `src/main/plugins/*`,
   `shape()` del vigía recorría solo la primera fila de cada lista, y la shape de la cuota bailaba
   según qué modelo saliera primero; ahora une las claves de todas las filas. cloud-api añade
   `/api/waitlist/signup` (sin efecto).
+- **CLI oficial v0.1.32 al día con el catálogo (2026-10-14)**: `models.go` pasa `qwen3.8-flash` a
+  1.048.576 de contexto, cambia `mimo-v2.5` por `mimo-v2.6-flash` (1M · out 32K · texto+imagen+audio)
+  y añade `Retired`/`StaleContexts` para limpiar configs viejas. Coincide con lo que ya tenía
+  `MODEL_NOTES` (tomado de la doc): 0.2.8 solo corrige las notas que decían que el CLI iba atrasado.
+  La doc de `nan-cli` añade `nan run --byok-secret` (runs con key propia del proveedor): sin efecto.
 - Toda la doc de NaN tiene versión markdown en `https://nan.builders/api/docs/<slug>.md`, y el índice
   con hash por página en `https://nan.builders/api/docs/manifest.json`: es la señal que vigila el
   vigía, más fiable que el repo `helmcode/nan` (que sigue vivo, pero es la fuente, no lo publicado).
