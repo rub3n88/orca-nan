@@ -165,7 +165,27 @@ nan runs reject <run-id>
 nan secrets ls
 ```
 
-Creating or editing automations and triggers, writing secrets and approving proposals happen only in the portal, signed in through your browser: the CLI tells you where if you try. A run waiting for approval makes `nan run`, `nan runs logs -f` and `nan automations run` exit with code 10. The details are in [Automations](/docs/automations#from-the-terminal).
+From v0.1.33, where your account has the write API (it is being opened gradually), the CLI also creates and changes your secrets, automations and triggers:
+
+```bash
+nan secrets set GITHUB_TOKEN --value-file ./token.txt     # add it, or replace its value
+gh auth token | nan secrets set GITHUB_READ_TOKEN --value-stdin
+nan secrets show GITHUB_TOKEN
+nan secrets edit GITHUB_TOKEN --description "repo acme/api"
+nan secrets rm OLD_TOKEN
+nan automations create -f automation.yaml
+nan automations edit "PR review" -f changes.yaml
+nan automations disable "PR review"
+nan automations triggers add "PR review" -f webhook.yaml  # prints the URL and secret once
+```
+
+A secret's value is read from a file or a pipe, never from the command line, and nothing ever prints it back. Every `nan secrets` flag, how to rotate a secret and the errors you can see are in [Secrets](/docs/secrets#manage-secrets-from-the-cli). Until your account has the write API, these commands say so and point you to the portal. Approving proposals always happens in the portal, signed in through your browser.
+
+From v0.1.34, where your account has notifications, `nan notifications` manages the channels that tell you in Slack, Microsoft Teams, Discord or your own endpoint when an automation needs your approval or fails: `nan notifications add "team alerts" --kind slack --url-file ./slack-url.txt`, then `nan notifications test "team alerts"`. The webhook URL is read from a file or a pipe, never from the command line. Every command is in [Notifications](/docs/notifications#manage-channels-from-the-cli).
+
+These commands use your `nan auth login` session first (it wins over `NAN_TOKEN`; `--token-file` wins over both), or a platform token with the scopes they need: `secrets:read` and `secrets:write` for secrets, `automations:write` (plus `automations:read` to use names) for automations; see [Tokens for automations](/docs/automations#tokens-for-automations). Sign in on your own machine, never inside a workspace: the agents there could read the session and change your secrets. Every command, the YAML files and the warnings are in [Manage them from the CLI or the API](/docs/automations#manage-them-from-the-cli-or-the-api).
+
+A run waiting for approval makes `nan run`, `nan runs logs -f` and `nan automations run` exit with code 10. The details are in [Automations](/docs/automations#from-the-terminal).
 
 ## Updating
 

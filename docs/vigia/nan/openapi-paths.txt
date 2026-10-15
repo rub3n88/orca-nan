@@ -4,17 +4,33 @@ GET /approvals - List approvals
 POST /audio/speech - Create speech
 POST /audio/transcriptions - Create transcription
 GET /automations - List automations
+POST /automations - Create an automation
 GET /automations/templates - List templates
 GET /automations/{id} - Retrieve an automation
+PATCH /automations/{id} - Change an automation
+DELETE /automations/{id} - Delete an automation
 GET /automations/{id}/deliveries - List webhook deliveries
 POST /automations/{id}/runs - Run an automation
 GET /automations/{id}/triggers - List triggers
+POST /automations/{id}/triggers - Create a trigger
+PATCH /automations/{id}/triggers/{trigger_id} - Change a trigger
+DELETE /automations/{id}/triggers/{trigger_id} - Delete a trigger
+POST /automations/{id}/triggers/{trigger_id}/rotate - Rotate a webhook URL or signing secret
 POST /chat/completions - Create chat completion
 POST /completions - Create completion
 POST /embeddings - Create embeddings
 POST /images/edits - Edit image
 POST /images/generations - Create image
 GET /models - List models
+GET /notification-channels - List notification channels
+POST /notification-channels - Create a notification channel
+GET /notification-channels/{id} - Get a notification channel
+PATCH /notification-channels/{id} - Change a notification channel
+DELETE /notification-channels/{id} - Delete a notification channel
+GET /notification-channels/{id}/deliveries - List a channel's deliveries
+POST /notification-channels/{id}/rotate-signing-secret - Rotate a channel's signing secret
+PUT /notification-channels/{id}/subscriptions - Replace a channel's subscriptions
+POST /notification-channels/{id}/test - Send a test notification
 POST /rerank - Rerank documents
 POST /responses - Create response
 POST /runs - Create a run
@@ -24,4 +40,10 @@ POST /runs/{id}/cancel - Cancel a run
 GET /runs/{id}/events - Follow a run's events
 GET /runs/{id}/proposal.diff - Download a proposal's diff
 POST /runs/{id}/reject - Reject a proposal
+GET /secrets - List secrets
+POST /secrets - Create a secret
+GET /secrets/{id} - Get a secret
+PATCH /secrets/{id} - Change a secret description or base URL
+DELETE /secrets/{id} - Delete a secret
+PUT /secrets/{id}/value - Replace a secret value
 GET /usage - Get usage

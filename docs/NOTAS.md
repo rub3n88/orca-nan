@@ -191,6 +191,13 @@ Fuente: `stablyai/orca` en GitHub (`src/shared/plugins/*`, `src/main/plugins/*`,
   y añade `Retired`/`StaleContexts` para limpiar configs viejas. Coincide con lo que ya tenía
   `MODEL_NOTES` (tomado de la doc): 0.2.8 solo corrige las notas que decían que el CLI iba atrasado.
   La doc de `nan-cli` añade `nan run --byok-secret` (runs con key propia del proveedor): sin efecto.
+- **CLI oficial v0.1.33/v0.1.34: API de escritura y notificaciones (2026-10-15)**: `nan secrets
+  set|show|edit|rm`, `nan automations create|edit|disable`, `triggers add` y `nan notifications`
+  (canales Slack/Teams/Discord/HTTPS). La openapi gana escritura de `/automations`, `/secrets` y
+  `/notification-channels`; cloud-api `/api/account/notification-channels` y `/api/webhooks/`; la doc
+  las páginas `notifications` y `secrets`. Los eventos de notificación son solo de automatizaciones
+  (`approval.pending`, `run.failed`…): ninguno de uso ni cuota, así que no sirven para el aviso del
+  80 %. `models.go`, `session.json` y `/usage` sin cambios: sin efecto en el plugin.
 - Toda la doc de NaN tiene versión markdown en `https://nan.builders/api/docs/<slug>.md`, y el índice
   con hash por página en `https://nan.builders/api/docs/manifest.json`: es la señal que vigila el
   vigía, más fiable que el repo `helmcode/nan` (que sigue vivo, pero es la fuente, no lo publicado).

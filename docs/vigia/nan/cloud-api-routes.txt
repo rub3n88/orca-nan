@@ -1,6 +1,7 @@
 /api/account/discord
 /api/account/discord/unlink
 /api/account/email/request
+/api/account/notification-channels
 /api/account/profile
 /api/account/secrets
 /api/account/secrets/
@@ -89,6 +90,7 @@
 /api/videos/upload-status/
 /api/videos/upload-url
 /api/waitlist/signup
+/api/webhooks/
 /api/workspaces
 /api/workspaces/
 /api/workspaces/catalog
