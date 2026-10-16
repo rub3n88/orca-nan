@@ -93,14 +93,15 @@ coinciden: `qwen3.8-flash` a 1M y `mimo-v2.6-flash` con ficha). Un `—` en la c
 significa que ese modelo no sale en `/usage/quota`: imagen, voz y embeddings van por un
 presupuesto aparte (`flux-2-klein` y `qwen-image-2.1` comparten 100 req/mes, no tokens).
 
-La línea `reasoning_effort` de cada modelo sale de la doc de NaN (2026-09-18): `glm5.3` y
-`glm5.3-flash` admiten `low`·`medium`·`high`·`max`; `qwen3.6` y `gemma4` además `none` y `minimal`
-(sin fase de razonamiento) y topan la fase en 2.048 / 8.192 / 16.384 / 32.768 tokens;
-`deepseek-v4-flash` razona por su cuenta e ignora el parámetro; `qwen3.8-flash` y
-`mimo-v2.6-flash` lo aceptan pero gestionan su profundidad. `mimo-v2.5` se retiró el 2026-09-30: ya
+La línea `reasoning_effort` de cada modelo sale de la doc de NaN (2026-10-16): los valores son
+`none`·`minimal`·`low`·`medium`·`high`·`xhigh`·`max` y `none` apaga el razonamiento en todos menos
+`glm5.3`/`glm5.3-flash`, que siempre razonan (`none` → `minimal`). `deepseek-v4-flash` y
+`qwen3.8-flash` lo usan como orientación (sin tope); `mimo-v2.6-flash` admite `low`…`max`;
+`qwen3.6` y `gemma4` apagan también con `minimal` y topan la fase en 2.048 / 8.192 / 16.384 / 32.768
+tokens. `mimo-v2.5` se retiró el 2026-09-30: ya
 no se sirve y `/usage/quota` lo deja con cap 0, así que `quota` lo marca «retirado (cap 0)» y el
-plugin no lo cuenta. Un valor que un modelo no aplica **no da error**. La traza
-llega en `message.reasoning_content`, aparte de la respuesta.
+plugin no lo cuenta. Un valor fuera de esa lista puede dar 400. La traza llega en
+`message.reasoning_content`, aparte de la respuesta.
 
 ## NaN Usage — el plugin de Orca
 

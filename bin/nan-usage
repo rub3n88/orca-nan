@@ -41,13 +41,13 @@ SESSION_FILE = os.path.expanduser("~/.config/nan/session.json")  # CLI oficial: 
 # se generan valores conservadores. "max" = respuesta máxima que un cliente debe
 # planificar ("Output" del CLI oficial / "Max answer" de la doc); sin él, 16K.
 MODEL_NOTES = {
-    "deepseek-v4-flash": {"name": "DeepSeek V4 Flash", "ctx": 1048575, "max": 32768, "input": ["text", "image"], "effort": "se ignora (el modelo decide por petición)", "note": "reasoning · vision (Vision-Exp) · el recomendado para empezar · json_object sí (el prompt debe decir JSON), json_schema → 400 · max_tokens < 16K se sube a 16K"},
-    "glm5.3-flash": {"name": "GLM 5.3 Flash", "ctx": 1048576, "max": 32768, "input": ["text", "image"], "effort": "low·medium·high·max", "note": "reasoning verboso por defecto · el de código sin premium"},
-    "qwen3.8-flash": {"name": "Qwen 3.8 Flash", "ctx": 1048576, "max": 32768, "input": ["text", "image"], "effort": "se acepta, profundidad no ajustable", "note": "reasoning por defecto · respuesta máx 131K según doc · 1M de contexto desde 2026-09-30 (doc y CLI oficial ≥ v0.1.32)"},
-    "mimo-v2.6-flash": {"name": "Xiaomi MiMo V2.6 Flash", "ctx": 1048576, "max": 32768, "input": ["text", "image", "audio"], "effort": "se acepta, profundidad no ajustable", "note": "omnimodal · el MiMo más nuevo · ficha en el CLI oficial desde v0.1.32 (1M · out 32K) · max_tokens ≥ 300 con reasoning"},
-    "gemma4": {"name": "Gemma 4", "ctx": 262144, "max": 65536, "input": ["text", "image"], "effort": "none·minimal·low…max (2K–32K)", "note": "multimodal · reasoning on por defecto (16K)"},
-    "qwen3.6": {"name": "Qwen 3.6", "ctx": 262144, "max": 65536, "input": ["text", "image"], "effort": "none·minimal·low…max (2K–32K)", "note": "generación anterior (doc: empieza por deepseek-v4-flash)"},
-    "glm5.3": {"name": "GLM 5.3 (premium)", "ctx": 1048576, "max": 32768, "input": ["text", "image", "audio", "video"], "effort": "low·medium·high·max", "note": "premium · multimodal (imagen, audio y vídeo desde 2026-10-01; el único con vídeo) · 3B/periodo de facturación · ventana 4h 400M"},
+    "deepseek-v4-flash": {"name": "DeepSeek V4 Flash", "ctx": 1048575, "max": 32768, "input": ["text", "image"], "effort": "none apaga · minimal…max orientan (no topan)", "note": "reasoning · vision (Vision-Exp) · el recomendado para empezar · json_object sí (en api.nan.builders el prompt debe decir JSON), json_schema → 400 en api.nan.builders (sí en api.helmcode.com) · con reasoning, max_tokens < 16K se sube a 16K"},
+    "glm5.3-flash": {"name": "GLM 5.3 Flash", "ctx": 1048576, "max": 32768, "input": ["text", "image"], "effort": "minimal…max · siempre razona (none → minimal)", "note": "reasoning verboso por defecto · el de código sin premium"},
+    "qwen3.8-flash": {"name": "Qwen 3.8 Flash", "ctx": 1048576, "max": 32768, "input": ["text", "image"], "effort": "none apaga · minimal…max orientan (no topan)", "note": "reasoning por defecto · respuesta máx 131K según doc · 1M de contexto desde 2026-09-30 (doc y CLI oficial ≥ v0.1.32)"},
+    "mimo-v2.6-flash": {"name": "Xiaomi MiMo V2.6 Flash", "ctx": 1048576, "max": 32768, "input": ["text", "image", "audio"], "effort": "none apaga · low·medium·high·max (minimal → low, xhigh → max)", "note": "omnimodal · el MiMo más nuevo · ficha en el CLI oficial desde v0.1.32 (1M · out 32K) · max_tokens ≥ 300 con reasoning"},
+    "gemma4": {"name": "Gemma 4", "ctx": 262144, "max": 65536, "input": ["text", "image"], "effort": "none·minimal apagan · low…max topan 2K–32K (xhigh = max)", "note": "multimodal · reasoning on por defecto (16K)"},
+    "qwen3.6": {"name": "Qwen 3.6", "ctx": 262144, "max": 65536, "input": ["text", "image"], "effort": "none·minimal apagan · low…max topan 2K–32K (xhigh = max)", "note": "generación anterior (doc: empieza por deepseek-v4-flash)"},
+    "glm5.3": {"name": "GLM 5.3 (premium)", "ctx": 1048576, "max": 32768, "input": ["text", "image", "audio", "video"], "effort": "minimal…max · siempre razona (none → minimal)", "note": "premium · multimodal (imagen, audio y vídeo desde 2026-10-01; el único con vídeo) · 3B/periodo de facturación · ventana 4h 400M"},
     "minimax-h3": {"name": "MiniMax H3", "ctx": 0, "input": ["text"], "note": "sin ficha en la doc ni en el CLI oficial: valores conservadores"},
     "qwen3-embedding": {"name": "Qwen3 Embedding", "ctx": 0, "input": ["text"], "note": "embeddings 4096d"},
     "rerank": {"name": "Rerank", "ctx": 0, "input": ["text"], "note": "reranker"},
@@ -60,9 +60,11 @@ MODEL_NOTES = {
 # mimo-v2.5 (2026-09-30): fuera de la doc desde el 29 y de /v1/models desde el 30; /usage/quota
 # lo sigue listando con cap 0 (como a cualquier modelo retirado): esas filas se marcan «retirado».
 # Sigue apareciendo en /api/usage/quota con cap y ventana 4h: se muestra tal cual.
-# `effort` (doc de 2026-09-18, /docs/models «Controlling reasoning» y /docs/api): qué hace cada
-# modelo con `reasoning_effort`. Un valor que un modelo no aplica nunca da error, solo se ignora.
-# La traza de razonamiento llega aparte, en `message.reasoning_content`.
+# `effort` (doc de 2026-10-16, /docs/models «Controlling reasoning»): qué hace cada modelo con
+# `reasoning_effort` (en Responses, `reasoning.effort`). Valores: none·minimal·low·medium·high·
+# xhigh·max; `none` apaga el razonamiento salvo en GLM. Un valor fuera de esa lista ya no es un
+# no-op garantizado: según el modelo da 400 o se ignora. La traza llega aparte, en
+# `message.reasoning_content` (Chat Completions) o como item `reasoning` (Responses).
 CHAT_EXCLUDE = {"qwen3-embedding", "rerank", "whisper", "kokoro", "flux-2-klein", "qwen-image-2.1"}
 
 

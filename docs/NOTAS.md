@@ -95,7 +95,7 @@ Fuente: `stablyai/orca` en GitHub (`src/shared/plugins/*`, `src/main/plugins/*`,
   `reasoning_effort` de `/docs/api`) ya publica el contrato de `reasoning_effort`: `glm5.3` y
   `glm5.3-flash` `low|medium|high|max`; `qwen3.6` y `gemma4` además `none`/`minimal` y topes de
   2.048/8.192/16.384/32.768 tokens (por defecto on, 16.384); `deepseek-v4-flash` razona adaptativo e
-  ignora el parámetro; `qwen3.8-flash` y `mimo-v2.5` lo aceptan sin ajustar profundidad. Un valor no
+  ignora el parámetro (cambió el 2026-10-16, ver más abajo); `qwen3.8-flash` y `mimo-v2.5` lo aceptan sin ajustar profundidad. Un valor no
   aplicable **no** da error y la traza va en `message.reasoning_content`. Está en `MODEL_NOTES`
   (campo `effort`), lo imprime `nan-usage models` y sale como `reasoningEffort` en `--json models`.
   No cambia nada de cuotas: `models-live.txt`, `quota-caps.txt` y `cli-models.go` no se movieron.
@@ -198,6 +198,19 @@ Fuente: `stablyai/orca` en GitHub (`src/shared/plugins/*`, `src/main/plugins/*`,
   las páginas `notifications` y `secrets`. Los eventos de notificación son solo de automatizaciones
   (`approval.pending`, `run.failed`…): ninguno de uso ni cuota, así que no sirven para el aviso del
   80 %. `models.go`, `session.json` y `/usage` sin cambios: sin efecto en el plugin.
+- **Contrato nuevo de `reasoning_effort` (2026-10-16, 0.2.9)**: `/docs/models` §«Controlling
+  reasoning» reescribe la tabla. Valores `none`·`minimal`·`low`·`medium`·`high`·`xhigh`·`max` (en
+  Responses, `reasoning: {"effort": …}`); `none` apaga el razonamiento en todos menos GLM, que siempre
+  razona (`none` → `minimal`). `deepseek-v4-flash` y `qwen3.8-flash` dejan de ignorarlo: `none`
+  apaga y `minimal`…`max` orientan sin topar; `mimo-v2.6-flash` `low`…`max` (`minimal` → `low`,
+  `xhigh` → `max`); `qwen3.6`/`gemma4` igual que antes más `xhigh` = `max` (en Responses solo on/off).
+  Se aceptan los alias `thinking: {"type": "disabled"}`, `enable_thinking: false`… Un valor fuera de
+  la lista ya **no** es un no-op garantizado (400 o se ignora). `deepseek-v4-flash` acepta
+  `json_schema` en `api.helmcode.com` (sigue 400 en `api.nan.builders`) y con reasoning apagado usa el
+  `max_tokens` tal cual. 0.2.9 actualiza `effort` y la nota de deepseek en `MODEL_NOTES`. Informativo:
+  cloud-api añade `/api/auth/signup` y `/api/billing/checkout` (quita `/api/waitlist/signup` y
+  `/api/admin/waitlist/invite`), la doc la página `built-with-nan`, y Orca un campo
+  `unverifiableOwner` solo del renderer en `rate-limit-types.ts`: sin efecto en el plugin.
 - Toda la doc de NaN tiene versión markdown en `https://nan.builders/api/docs/<slug>.md`, y el índice
   con hash por página en `https://nan.builders/api/docs/manifest.json`: es la señal que vigila el
   vigía, más fiable que el repo `helmcode/nan` (que sigue vivo, pero es la fuente, no lo publicado).

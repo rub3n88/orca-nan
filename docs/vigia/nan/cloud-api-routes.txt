@@ -32,7 +32,6 @@
 /api/admin/referrals/retention
 /api/admin/tags
 /api/admin/waitlist/final-notice
-/api/admin/waitlist/invite
 /api/admin/waitlist/remind
 /api/admin/waitlist/remind-registered
 /api/admin/waitlist/state
@@ -42,7 +41,9 @@
 /api/auth/login/request
 /api/auth/logout
 /api/auth/me
+/api/auth/signup
 /api/billing
+/api/billing/checkout
 /api/billing/downgrade-premium
 /api/billing/invoices
 /api/billing/migrate-currency
@@ -89,7 +90,6 @@
 /api/videos/tags
 /api/videos/upload-status/
 /api/videos/upload-url
-/api/waitlist/signup
 /api/webhooks/
 /api/workspaces
 /api/workspaces/
