@@ -21,7 +21,7 @@ Premium tier: callable only with a key on the GLM 5.3 premium membership. \~753B
 **capabilities**
 
 - Tool calling (function calling)
-- Reasoning control (`reasoning_effort`: low · medium · high · max)
+- Reasoning control (`reasoning_effort`: `minimal` to `max`; always reasons, `none` is applied as `minimal`) · [details](#controlling-reasoning)
 - Vision (image input)
 - Audio (audio input)
 - Video (video input)
@@ -32,7 +32,7 @@ Premium tier: callable only with a key on the GLM 5.3 premium membership. \~753B
 
 ### deepseek-v4-flash - 305B MoE
 
-305B parameter MoE model, served as the Vision-Exp variant: it takes images as input. 1M token context. Tool calling and reasoning. 3B token monthly quota per member. Structured output: response\_format json\_object is supported (the prompt must contain the word JSON, otherwise it is rejected with a 400), json\_schema is not and is rejected with a 400. json\_object guarantees syntactically valid JSON only, not its shape: describe the schema in the prompt. For schema-constrained output, use qwen3.6 or gemma4, where json\_schema with strict constrains fields, types and required keys; or, on this model, force one function tool whose parameters is your schema (see Examples). A max\_tokens below 16384 is raised to 16384 so the reasoning fits, so a prompt within 16384 tokens of the 1,048,576-token window is rejected with a 400 even with a small max\_tokens (usually Context length exceeded, sometimes a generic Invalid request).
+305B parameter MoE model, served as the Vision-Exp variant: it takes images as input. 1M token context. Tool calling and reasoning. 3B token monthly quota per member. Structured output depends on the host: on api.helmcode.com, response\_format json\_schema and json\_object are accepted; on api.nan.builders, json\_object is supported (the prompt must contain the word JSON, otherwise it is rejected with a 400) and json\_schema is rejected with a 400. json\_object guarantees syntactically valid JSON only, not its shape: describe the schema in the prompt. For schema-constrained output on api.nan.builders, use qwen3.6 or gemma4, where json\_schema with strict constrains fields, types and required keys; or, on this model, force one function tool whose parameters is your schema (see Examples). While reasoning is on, a max\_tokens below 16384 is raised to 16384 so the reasoning fits, so a prompt within 16384 tokens of the 1,048,576-token window is rejected with a 400 even with a small max\_tokens (usually Context length exceeded, sometimes a generic Invalid request). With reasoning off (reasoning\_effort "none" or any of its aliases) your max\_tokens is used as sent.
 
 **text generation, chat & vision**
 
@@ -46,9 +46,9 @@ Premium tier: callable only with a key on the GLM 5.3 premium membership. \~753B
 **capabilities**
 
 - Tool calling
-- Reasoning mode (adaptive — not level-adjustable)
+- Reasoning control (`reasoning_effort`: `none` turns it off · `minimal` to `max`) · [details](#controlling-reasoning)
 - Vision (image input)
-- JSON mode (`json_object`, the prompt must mention JSON) · `json_schema` not supported (400)
+- JSON mode (`json_object`; on api.nan.builders the prompt must mention JSON) · `json_schema`: 400 on api.nan.builders, accepted on api.helmcode.com
 - 1M token context
 - Streaming generation (SSE)
 
@@ -69,7 +69,7 @@ Premium tier: callable only with a key on the GLM 5.3 premium membership. \~753B
 **capabilities**
 
 - Tool calling (function calling)
-- Reasoning control (`reasoning_effort`: low · medium · high · max)
+- Reasoning control (`reasoning_effort`: `minimal` to `max`; always reasons, `none` is applied as `minimal`) · [details](#controlling-reasoning)
 - Vision (image input)
 - 1M token context
 - Streaming generation (SSE)
@@ -91,7 +91,7 @@ Premium tier: callable only with a key on the GLM 5.3 premium membership. \~753B
 **capabilities**
 
 - Tool calling (XML format)
-- Reasoning mode (on by default)
+- Reasoning on by default (`reasoning_effort`: `none` turns it off · `minimal` to `max`) · [details](#controlling-reasoning)
 - Vision (image input)
 - 1M token context
 - Streaming generation (SSE)
@@ -110,7 +110,7 @@ The newest Xiaomi MiMo, natively omnimodal with vision and audio input. 1M token
 **capabilities**
 
 - Tool calling (function calling)
-- Reasoning mode (recommended `max_tokens ≥ 300`)
+- Reasoning control (`reasoning_effort`: `none` turns it off · `low` to `max`; recommended `max_tokens ≥ 300`) · [details](#controlling-reasoning)
 - Vision (image input)
 - Audio (audio input)
 - 1M token context
@@ -131,7 +131,7 @@ The newest Xiaomi MiMo, natively omnimodal with vision and audio input. 1M token
 **capabilities**
 
 - Tool calling (XML format)
-- Reasoning control (`none` · low · medium · high · max)
+- Reasoning control (`reasoning_effort`: `none` or `minimal` turns it off · `low` to `max`) · [details](#controlling-reasoning)
 - Multimodal (vision / images)
 - Streaming generation (SSE)
 
@@ -152,7 +152,7 @@ The previous generation. 35B parameter MoE, multimodal, with tool calling and re
 **capabilities**
 
 - Tool calling (XML format)
-- Reasoning control (`none` · low · medium · high · max)
+- Reasoning control (`reasoning_effort`: `none` or `minimal` turns it off · `low` to `max`) · [details](#controlling-reasoning)
 - Multimodal (vision / images)
 - Streaming generation (SSE)
 
@@ -279,33 +279,126 @@ Qwen image model for text-to-image with strong prompt adherence and clean text r
 
 ## Controlling reasoning.
 
-Every chat model above thinks before it answers, and the reasoning trace
-arrives separately from the answer, in `message.reasoning_content`. How much a
-model is allowed to think is a request parameter, `reasoning_effort`, and each
-model applies it differently — the table is the contract. A value a model
-cannot apply is never an error.
+Every chat model above reasons before it answers. The reasoning arrives
+separately from the answer: in `message.reasoning_content` on Chat Completions,
+as a `reasoning` output item on Responses. One parameter controls it, the same
+on every model:
 
-| Model                               | `reasoning_effort` values                         | What it does                                                                                                                            |
-| ----------------------------------- | ------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
-| `glm5.3` · `glm5.3-flash`           | `low`, `medium`, `high`, `max`                    | Fully controllable. Higher values let the model reason longer before it answers; `max` is the deepest.                                  |
-| `qwen3.6`                           | `none`, `minimal`, `low`, `medium`, `high`, `max` | `none` and `minimal` skip the reasoning phase entirely. The other four cap it: low 2,048, medium 8,192, high 16,384, max 32,768 tokens. |
-| `gemma4`                            | `none`, `minimal`, `low`, `medium`, `high`, `max` | Same as `qwen3.6`: off, or a reasoning budget between 2,048 and 32,768 tokens.                                                          |
-| `deepseek-v4-flash`                 | any value (no effect)                             | The model decides per request how much to reason; the parameter never changes that.                                                     |
-| `qwen3.8-flash` · `mimo-v2.6-flash` | accepted, depth not adjustable                    | The parameter is accepted and never rejected, but these models manage their own reasoning depth.                                        |
+| API                                       | Parameter                    |
+| ----------------------------------------- | ---------------------------- |
+| Chat Completions (`/v1/chat/completions`) | `reasoning_effort`           |
+| Responses (`/v1/responses`)               | `reasoning: {"effort": ...}` |
 
-With no parameter, every model uses its own default (reasoning on for
-`qwen3.6` and `gemma4`, with a 16,384-token budget). More reasoning costs
-latency and counts toward `max_tokens`; it never costs extra setup.
+The values, from no reasoning to the deepest: `none`, `minimal`, `low`,
+`medium`, `high`, `xhigh`, `max`.
+
+**To turn reasoning off, send `none`.** That is the whole switch. It works on
+every model except GLM, which cannot stop reasoning (see the table).
+
+Code written for another provider keeps working: we also accept
+`thinking: {"type": "disabled"}`, `reasoning: {"enabled": false}`,
+`enable_thinking: false` and `chat_template_kwargs: {"enable_thinking": false}`,
+at the top level of the body or inside `extra_body`. Each one means exactly
+`none`. If a request carries both a value and one of these, the value wins.
+
+| Model                     | Off switch (`none`)                                                                                      | The other values                                                                                                                                                                                                                                   |
+| ------------------------- | -------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `deepseek-v4-flash`       | Off. No reasoning tokens.                                                                                | `minimal` to `max` steer how much it reasons. They are hints the model follows, not hard caps.                                                                                                                                                     |
+| `qwen3.8-flash`           | Off. No reasoning tokens.                                                                                | Reasoning is on by default; `minimal` to `max` steer its depth (hints, not caps).                                                                                                                                                                  |
+| `mimo-v2.6-flash`         | Off. No reasoning tokens.                                                                                | `low`, `medium`, `high`, `max`. `minimal` is applied as `low` and `xhigh` as `max`.                                                                                                                                                                |
+| `qwen3.6` · `gemma4`      | Off. `minimal` turns it off too.                                                                         | On Chat Completions they cap the reasoning phase: `low` 2,048, `medium` 8,192, `high` 16,384, `xhigh` and `max` 32,768 tokens. On Responses only on and off apply: any value but `none` or `minimal` reasons with the default 16,384-token budget. |
+| `glm5.3` · `glm5.3-flash` | Not possible: GLM always reasons. `none` is applied as `minimal`, its shortest reasoning (a few tokens). | `minimal` to `max`; higher values reason longer before answering.                                                                                                                                                                                  |
+
+With no parameter every model reasons (`qwen3.6` and `gemma4` with a
+16,384-token budget). Reasoning costs latency and its tokens count toward
+`max_tokens`. Use only the values listed here.
+Any other value is passed through unchanged and is not part of this contract: depending
+on the model it is rejected with a `400` or ignored.
 
 ```bash
 curl https://api.nan.builders/v1/chat/completions \
   -H "Authorization: Bearer $NAN_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{
-    "model": "glm5.3-flash",
-    "reasoning_effort": "low",
+    "model": "deepseek-v4-flash",
+    "reasoning_effort": "none",
     "messages": [{"role": "user", "content": "Write a one-line summary of the CAP theorem."}]
   }'
+```
+
+On Helmcode, use `https://api.helmcode.com/v1` as the base URL; everything else is identical.
+
+With the OpenAI SDK, on Chat Completions and on Responses:
+
+```python
+# pip install openai
+import os
+from openai import OpenAI
+
+client = OpenAI(
+    api_key=os.environ["NAN_API_KEY"],
+    base_url="https://api.nan.builders/v1",  # Helmcode: https://api.helmcode.com/v1
+)
+
+chat = client.chat.completions.create(
+    model="deepseek-v4-flash",
+    reasoning_effort="none",
+    messages=[{"role": "user", "content": "Write a one-line summary of the CAP theorem."}],
+)
+print(chat.choices[0].message.content)
+
+resp = client.responses.create(
+    model="deepseek-v4-flash",
+    reasoning={"effort": "none"},
+    input="Write a one-line summary of the CAP theorem.",
+)
+print(resp.output_text)
+```
+
+If your version of the Python SDK does not know the parameter yet (it raises `TypeError: ... unexpected keyword argument`), send it through `extra_body`; it reaches the API exactly the same:
+
+```python
+chat = client.chat.completions.create(
+    model="deepseek-v4-flash",
+    extra_body={"reasoning_effort": "none"},
+    messages=[{"role": "user", "content": "Write a one-line summary of the CAP theorem."}],
+)
+```
+
+In Node, with the same names as the HTTP API:
+
+```javascript
+// npm install openai
+import OpenAI from 'openai';
+
+const client = new OpenAI({
+  apiKey: process.env.NAN_API_KEY,
+  baseURL: 'https://api.nan.builders/v1', // Helmcode: https://api.helmcode.com/v1
+});
+
+const chat = await client.chat.completions.create({
+  model: 'deepseek-v4-flash',
+  reasoning_effort: 'none',
+  messages: [{ role: 'user', content: 'Write a one-line summary of the CAP theorem.' }],
+});
+console.log(chat.choices[0].message.content);
+
+const resp = await client.responses.create({
+  model: 'deepseek-v4-flash',
+  reasoning: { effort: 'none' },
+  input: 'Write a one-line summary of the CAP theorem.',
+});
+console.log(resp.output_text);
+```
+
+TypeScript: if your SDK version types the parameter as a union that lacks a value you send (for example `max`), add `// @ts-expect-error` on the line above it, or cast the params object. The API accepts every value in the table.
+
+```typescript
+const chat = await client.chat.completions.create({
+  model: 'deepseek-v4-flash',
+  reasoning_effort: 'max' as any, // older SDK types do not list 'max'
+  messages: [{ role: 'user', content: 'Write a one-line summary of the CAP theorem.' }],
+});
 ```
 
 ## Reasoning-only stream limit.
