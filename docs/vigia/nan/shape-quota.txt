@@ -1,4 +1,6 @@
 .models[].cap int
+.models[].extraTokens int
+.models[].extraUsable bool
 .models[].fullWindowTokens int
 .models[].model str
 .models[].periodEnd str

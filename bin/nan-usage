@@ -41,7 +41,7 @@ SESSION_FILE = os.path.expanduser("~/.config/nan/session.json")  # CLI oficial: 
 # se generan valores conservadores. "max" = respuesta máxima que un cliente debe
 # planificar ("Output" del CLI oficial / "Max answer" de la doc); sin él, 16K.
 MODEL_NOTES = {
-    "deepseek-v4-flash": {"name": "DeepSeek V4 Flash", "ctx": 1048575, "max": 32768, "input": ["text", "image"], "effort": "none apaga · minimal…max orientan (no topan)", "note": "reasoning · vision (Vision-Exp) · el recomendado para empezar · json_object sí (en api.nan.builders el prompt debe decir JSON), json_schema → 400 en api.nan.builders (sí en api.helmcode.com) · con reasoning, max_tokens < 16K se sube a 16K"},
+    "deepseek-v4-flash": {"name": "DeepSeek V4 Flash", "ctx": 1048575, "max": 32768, "input": ["text", "image"], "effort": "none apaga · minimal…max orientan (no topan)", "note": "reasoning · vision (Vision-Exp) · el recomendado para empezar · json_object sí (en api.nan.builders el prompt debe decir JSON), json_schema sí sin stream ni tools en /chat/completions (validado, no garantizado; con stream, tools o /responses → 400 en api.nan.builders) · con reasoning, max_tokens < 16K se sube a 16K"},
     "glm5.3-flash": {"name": "GLM 5.3 Flash", "ctx": 1048576, "max": 32768, "input": ["text", "image"], "effort": "minimal…max · siempre razona (none → minimal)", "note": "reasoning verboso por defecto · el de código sin premium"},
     "qwen3.8-flash": {"name": "Qwen 3.8 Flash", "ctx": 1048576, "max": 32768, "input": ["text", "image"], "effort": "none apaga · minimal…max orientan (no topan)", "note": "reasoning por defecto · respuesta máx 131K según doc · 1M de contexto desde 2026-09-30 (doc y CLI oficial ≥ v0.1.32)"},
     "mimo-v2.6-flash": {"name": "Xiaomi MiMo V2.6 Flash", "ctx": 1048576, "max": 32768, "input": ["text", "image", "audio"], "effort": "none apaga · low·medium·high·max (minimal → low, xhigh → max)", "note": "omnimodal · el MiMo más nuevo · ficha en el CLI oficial desde v0.1.32 (1M · out 32K) · max_tokens ≥ 300 con reasoning"},
@@ -196,6 +196,9 @@ def cmd_quota(as_json):
         win = f"  ventana {m['windowHours']}h: {fmt(m['fullWindowTokens'])}" if m.get("windowHours") else ""
         reset = f"reset {days_left(m['periodEnd'])}d" if m.get("periodEnd") else ""
         flag = " ⚠" if p >= 0.8 else ""
+        # Paquetes de tokens extra (2026-10-18): saldo comprado que se gasta al llegar al cap.
+        if m.get("extraTokens"):
+            win += f"  +{fmt(m['extraTokens'])} extra" + ("" if m.get("extraUsable", True) else " (pausado)")
         if not m["cap"]:
             reset, flag = "retirado (cap 0)", ""
         print(f"  {m['model']:<20} {bar(p)} {p * 100:5.1f}%  {fmt(m['tokensUsed']):>7} / {fmt(m['cap']):<6} {reset}{win}{flag}")

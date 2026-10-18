@@ -113,9 +113,13 @@ function quotaLines(quota) {
     .map((m) => {
       const p = Math.round(pct(m.tokensUsed, m.cap) * 100)
       const win = m.windowHours ? ` · ventana ${m.windowHours}h` : ''
-      return `${m.model}: ${p}% (${fmt(m.tokensUsed)}/${fmt(m.cap)})${win}`
+      return `${m.model}: ${p}% (${fmt(m.tokensUsed)}/${fmt(m.cap)})${win}${extra(m)}`
     })
 }
+
+// Paquetes de tokens extra (2026-10-18): saldo comprado por modelo que se gasta al llegar al cap;
+// extraUsable false = pausado (sin membresía activa o sin premium).
+const extra = (m) => (m.extraTokens > 0 ? ` · +${fmt(m.extraTokens)} extra${m.extraUsable === false ? ' (pausado)' : ''}` : '')
 
 async function notify(orca, title, lines) {
   await orca.host.call('notifications.show', {
@@ -207,7 +211,7 @@ export default function activate(orca) {
       const tag = `${m.model}@${m.periodEnd ?? ''}`
       if (!force && seen[tag]) continue
       seen[tag] = Date.now()
-      hot.push(`${m.model}: ${Math.round(p * 100)}% (${fmt(m.remaining)} restantes)`)
+      hot.push(`${m.model}: ${Math.round(p * 100)}% (${fmt(m.remaining)} restantes)${extra(m)}`)
     }
     await orca.host.call('storage.set', { key: 'alerted', value: seen })
     if (hot.length) await notify(orca, '⚠ NaN · cuota por encima del 80 %', hot)
