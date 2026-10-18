@@ -82,6 +82,9 @@
 /api/upgrade/preview
 /api/upgrade/request
 /api/usage/quota
+/api/usage/token-packs
+/api/usage/token-packs/balances
+/api/usage/token-packs/checkout
 /api/video-gen
 /api/video-gen/
 /api/video-gen/refs

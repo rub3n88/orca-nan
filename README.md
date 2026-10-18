@@ -85,7 +85,9 @@ peticiones por día UTC y modelo, más el total histórico. Si falla, cae a la r
 cloud-api (`/api/metrics/usage`, 24h rodantes) y lo dice; `nan-usage usage cloud` la fuerza (desde el
 2026-10-08 esa ruta pide sesión del panel, así que el respaldo ya no responde con API key). La
 **cuota** (cap, restante, reset, ventana 4h) no está en la API oficial: `quota`, `status` y el aviso
-del 80 % siguen leyendo cloud-api.
+del 80 % siguen leyendo cloud-api. Si has comprado un paquete de tokens extra para un modelo (se
+gasta al llegar al cap), `quota`, `nan-quota` y el aviso lo enseñan como `+N extra`, con «pausado»
+cuando NaN no deja usarlo (sin membresía activa o sin premium).
 
 `models` añade a cada modelo su ficha (contexto, modalidades, respuesta máxima, notas y qué hace con
 `reasoning_effort`), tomada de `internal/models/models.go` del CLI oficial y de la doc de NaN (desde el CLI v0.1.32 ambas

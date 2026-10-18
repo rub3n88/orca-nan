@@ -211,6 +211,17 @@ Fuente: `stablyai/orca` en GitHub (`src/shared/plugins/*`, `src/main/plugins/*`,
   cloud-api añade `/api/auth/signup` y `/api/billing/checkout` (quita `/api/waitlist/signup` y
   `/api/admin/waitlist/invite`), la doc la página `built-with-nan`, y Orca un campo
   `unverifiableOwner` solo del renderer en `rate-limit-types.ts`: sin efecto en el plugin.
+- **Paquetes de tokens extra y `json_schema` en deepseek (2026-10-18, 0.2.10)**: cloud-api añade
+  `/api/usage/token-packs` (`?model=`), `/balances` y `/checkout` (compra con Stripe), y
+  `/usage/quota` gana `extraTokens` y `extraUsable` por fila (el bundle lee también
+  `extraExpiresAt`). Según el panel: es saldo comprado para ese modelo que se gasta cuando
+  `tokensUsed` llega al cap («using extra») y `extraUsable: false` lo deja en pausa («requires
+  premium / an active membership»). El cap y el % no cambian, así que el aviso del 80 % sigue igual;
+  0.2.10 añade `+N extra` (y «pausado») a `quota`, `nan-quota` y el aviso cuando hay saldo. Hoy todas
+  las filas traen 0. `/docs/models` y `examples`: `deepseek-v4-flash` ya acepta `json_schema` en
+  `api.nan.builders` en `/chat/completions` sin stream ni tools (se valida contra el esquema y, si no
+  cuadra, suele re-servirse con otro proveedor; no garantizado); con stream, tools, `/responses`,
+  `n` > 1 o esquemas de más de 16 KB sigue el 400. Va en la nota de `MODEL_NOTES`.
 - Toda la doc de NaN tiene versión markdown en `https://nan.builders/api/docs/<slug>.md`, y el índice
   con hash por página en `https://nan.builders/api/docs/manifest.json`: es la señal que vigila el
   vigía, más fiable que el repo `helmcode/nan` (que sigue vivo, pero es la fuente, no lo publicado).
