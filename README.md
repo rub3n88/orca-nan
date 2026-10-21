@@ -14,7 +14,8 @@ Tu suscripción de [NaN](https://nan.builders) —cuotas, consumo, modelos, salu
 
 ## Requisitos
 
-- Suscripción de NaN con API key (tier *inference*).
+- Suscripción de NaN con API key (tier *inference*): `nan_member` (70 €/mes) o premium de GLM 5.3
+  (200 €/mes). El plan NaN Community (14,99 €/mes) no ejecuta modelos, así que no tiene API key.
 - La key en cualquiera de estos sitios (se buscan en este orden): `$NAN_API_KEY`,
   `~/.config/nan/api-key` (`chmod 600`), `~/.config/nan/env` (línea `NAN_API_KEY=…`) o el
   `~/.config/nan/session.json` que deja el CLI oficial de NaN tras `nan auth login`. Si ya usas el
@@ -103,7 +104,10 @@ La línea `reasoning_effort` de cada modelo sale de la doc de NaN (2026-10-16): 
 tokens. `mimo-v2.5` se retiró el 2026-09-30: ya
 no se sirve y `/usage/quota` lo deja con cap 0, así que `quota` lo marca «retirado (cap 0)» y el
 plugin no lo cuenta. Un valor fuera de esa lista puede dar 400. La traza llega en
-`message.reasoning_content`, aparte de la respuesta.
+`message.reasoning_content`, aparte de la respuesta. Desde el 2026-10-19 el razonamiento gasta del
+mismo `max_tokens`, que se usa tal cual (ya no hay suelo de 16K en `deepseek-v4-flash`): con poco
+presupuesto la respuesta llega vacía con `finish_reason: "length"`. En `qwen3.6`, `gemma4` y
+`qwen3.8-flash`, `thinking_budget` (1–32.768) topa el razonamiento en Chat Completions.
 
 ## NaN Usage — el plugin de Orca
 

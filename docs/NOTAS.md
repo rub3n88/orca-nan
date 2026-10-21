@@ -222,6 +222,23 @@ Fuente: `stablyai/orca` en GitHub (`src/shared/plugins/*`, `src/main/plugins/*`,
   `api.nan.builders` en `/chat/completions` sin stream ni tools (se valida contra el esquema y, si no
   cuadra, suele re-servirse con otro proveedor; no garantizado); con stream, tools, `/responses`,
   `n` > 1 o esquemas de más de 16 KB sigue el 400. Va en la nota de `MODEL_NOTES`.
+- **Presupuesto de salida tal cual y `thinking_budget` (2026-10-19, 0.2.11)**: `/docs/models` quita el
+  suelo de 16.384 de `deepseek-v4-flash` con reasoning: `max_tokens`, `max_completion_tokens` y
+  `max_output_tokens` se usan tal cual en todos los modelos (tope 393.216 en `deepseek-v4-flash` y
+  131.072 en `glm5.3-flash`) y el razonamiento gasta de ese presupuesto. Si se agota razonando, Chat
+  Completions devuelve `content` vacío, `finish_reason: "length"` y `reasoning_tokens` igual a
+  `completion_tokens` (sin stream, también la cabecera `x-nan-truncated-in-reasoning: true`);
+  Responses, `status: "incomplete"`. Desaparece el «`max_tokens` ≥ 300» de `mimo-v2.6-flash`. Nuevo
+  `thinking_budget` / `thinking_token_budget` (1–32.768, tope duro; 0 apaga) en `qwen3.6`, `gemma4` y
+  `qwen3.8-flash`, solo en Chat Completions y sin mezclarlo con `reasoning_effort`. 0.2.11 lo lleva a
+  `MODEL_NOTES`. El ping de `status`/`nan-check` (`max_tokens: 8`, stream) solo mide el primer chunk,
+  así que no le afecta. `getting-started`: la API key requiere `nan_member` (70 €/mes) o premium
+  (200 €/mes); el plan Community de 14,99 € no tiene. Informativo: cloud-api añade
+  `/api/billing/payment-method` y `/api/ephemeral/settings`·`/usage` (runs efímeros de las
+  automatizaciones: minutos y € por tamaño de contenedor, tras `features.ephemeral`; no es cuota de
+  tokens, no sirve para el aviso del 80 %), y Orca, `group`/`windowName` en `RateLimitBucket`
+  (Antigravity), `ownerNotSetUp` solo del renderer en `rate-limit-types.ts` y `.prefault({})` en
+  `contributes` del manifiesto (mismos valores por defecto, sin capacidades nuevas): sin efecto.
 - Toda la doc de NaN tiene versión markdown en `https://nan.builders/api/docs/<slug>.md`, y el índice
   con hash por página en `https://nan.builders/api/docs/manifest.json`: es la señal que vigila el
   vigía, más fiable que el repo `helmcode/nan` (que sigue vivo, pero es la fuente, no lo publicado).
