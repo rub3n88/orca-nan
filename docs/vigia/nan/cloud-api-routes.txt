@@ -47,10 +47,13 @@
 /api/billing/downgrade-premium
 /api/billing/invoices
 /api/billing/migrate-currency
+/api/billing/payment-method
 /api/billing/portal
 /api/billing/upgrade-premium
 /api/billing/workspace-subscriptions
 /api/community/signup
+/api/ephemeral/settings
+/api/ephemeral/usage
 /api/github/installations
 /api/github/installations/
 /api/images

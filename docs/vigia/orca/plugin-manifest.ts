@@ -113,15 +113,8 @@ const pluginManifestV1Object = z.object({
         .default([])
     })
     .strict()
-    .default(() => ({
-      panels: [],
-      commands: [],
-      events: [],
-      languagePacks: [],
-      keybindings: [],
-      vmRecipes: [],
-      agents: []
-    })),
+    // Why prefault: runs `{}` through the schema, so every family's own default applies.
+    .prefault({}),
   capabilities: z.array(pluginCapabilitySchema).max(32).default([])
 })
 

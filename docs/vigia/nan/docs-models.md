@@ -32,7 +32,7 @@ Premium tier: callable only with a key on the GLM 5.3 premium membership. \~753B
 
 ### deepseek-v4-flash - 305B MoE
 
-305B parameter MoE model, served as the Vision-Exp variant: it takes images as input. 1M token context. Tool calling and reasoning. 3B token monthly quota per member. Structured output: response\_format json\_object is supported (on api.nan.builders the prompt must contain the word JSON, otherwise it is rejected with a 400). json\_schema is accepted on non-streamed /chat/completions requests without tools: the answer is checked against your schema and, when it does not match, usually re-served by a provider that enforces it; an answer that could not be checked, or a miss the re-serve could not replace in time, is returned as is (validate it if your code depends on it). On api.nan.builders other json\_schema requests are rejected with a 400: streamed, with tools, on /responses, with n above 1, with a schema over 16 KB, not a valid JSON Schema, or one the gateway will not validate (a $ref outside the schema, $dynamicRef or $anchor, a nested $id, or too large once its $refs are inlined); on api.helmcode.com they are accepted. json\_object guarantees syntactically valid JSON only, not its shape: describe the schema in the prompt. For schema-constrained output in those other requests, use qwen3.6 or gemma4, where json\_schema with strict constrains fields, types and required keys; or, on this model, force one function tool whose parameters is your schema (see Examples). While reasoning is on, a max\_tokens below 16384 is raised to 16384 so the reasoning fits, so a prompt within 16384 tokens of the 1,048,576-token window is rejected with a 400 even with a small max\_tokens (usually Context length exceeded, sometimes a generic Invalid request). With reasoning off (reasoning\_effort "none" or any of its aliases) your max\_tokens is used as sent.
+305B parameter MoE model, served as the Vision-Exp variant: it takes images as input. 1M token context. Tool calling and reasoning. 3B token monthly quota per member. Structured output: response\_format json\_object is supported (on api.nan.builders the prompt must contain the word JSON, otherwise it is rejected with a 400). json\_schema is accepted on non-streamed /chat/completions requests without tools: the answer is checked against your schema and, when it does not match, usually re-served by a provider that enforces it; an answer that could not be checked, or a miss the re-serve could not replace in time, is returned as is (validate it if your code depends on it). On api.nan.builders other json\_schema requests are rejected with a 400: streamed, with tools, on /responses, with n above 1, with a schema over 16 KB, not a valid JSON Schema, or one the gateway will not validate (a $ref outside the schema, $dynamicRef or $anchor, a nested $id, or too large once its $refs are inlined); on api.helmcode.com they are accepted. json\_object guarantees syntactically valid JSON only, not its shape: describe the schema in the prompt. For schema-constrained output in those other requests, use qwen3.6 or gemma4, where json\_schema with strict constrains fields, types and required keys; or, on this model, force one function tool whose parameters is your schema (see Examples). Your output budget is used exactly as sent (above 393216, its maximum, it is lowered to 393216), with reasoning on or off (max\_tokens and max\_completion\_tokens on /chat/completions, max\_output\_tokens on /responses). Reasoning tokens count inside that budget: with reasoning on, a small budget can be spent entirely on reasoning. On /chat/completions the answer then comes back with an empty content and finish\_reason "length" (the reasoning is in reasoning\_content, and usage.completion\_tokens\_details.reasoning\_tokens equals completion\_tokens; non-streamed calls also carry the response header x-nan-truncated-in-reasoning: true); on /responses the status is incomplete, with only a reasoning output item. Dense prompts can reason past 16k tokens. The reliable fix is reasoning off (reasoning\_effort "none" on /chat/completions, reasoning.effort "none" on /responses); a lower effort is a hint on this model, not a cap. Or give a generous budget and stream the answer.
 
 **text generation, chat & vision**
 
@@ -110,7 +110,7 @@ The newest Xiaomi MiMo, natively omnimodal with vision and audio input. 1M token
 **capabilities**
 
 - Tool calling (function calling)
-- Reasoning control (`reasoning_effort`: `none` turns it off · `low` to `max`; recommended `max_tokens ≥ 300`) · [details](#controlling-reasoning)
+- Reasoning control (`reasoning_effort`: `none` turns it off · `low` to `max`; reasoning counts inside `max_tokens`) · [details](#controlling-reasoning)
 - Vision (image input)
 - Audio (audio input)
 - 1M token context
@@ -310,10 +310,27 @@ at the top level of the body or inside `extra_body`. Each one means exactly
 | `glm5.3` · `glm5.3-flash` | Not possible: GLM always reasons. `none` is applied as `minimal`, its shortest reasoning (a few tokens). | `minimal` to `max`; higher values reason longer before answering.                                                                                                                                                                                  |
 
 With no parameter every model reasons (`qwen3.6` and `gemma4` with a
-16,384-token budget). Reasoning costs latency and its tokens count toward
-`max_tokens`. Use only the values listed here.
+16,384-token budget). Reasoning costs latency. Use only the values listed here.
 Any other value is passed through unchanged and is not part of this contract: depending
 on the model it is rejected with a `400` or ignored.
+
+Your output budget (`max_tokens` or `max_completion_tokens` on Chat Completions,
+`max_output_tokens` on Responses) is used exactly as you send it on every model,
+except above the model's maximum on two models, where it is lowered to that maximum: 131072 on `glm5.3-flash`, 393216 on `deepseek-v4-flash`.
+Reasoning tokens are spent from that same budget.
+
+**Empty answer with `finish_reason: "length"`?** With reasoning on, a small
+budget can run out before the answer starts. On Chat Completions you get an empty `content` with
+`finish_reason: "length"`, the reasoning in `message.reasoning_content`, and
+`usage.completion_tokens_details.reasoning_tokens` equal to `completion_tokens`;
+only the three together mean the budget ran out while reasoning, and a non-streamed call also carries the response header `x-nan-truncated-in-reasoning: true`.
+On Responses the response has `status: "incomplete"` with `incomplete_details.reason: "max_output_tokens"`, only a `reasoning` output item and no message text, and `usage.output_tokens_details.reasoning_tokens` equals `output_tokens`.
+On `deepseek-v4-flash` a dense prompt can reason past 16k tokens. If you only
+need the answer, the reliable fix is to turn reasoning off: `reasoning_effort: "none"` on Chat Completions, `reasoning: {"effort": "none"}` on Responses (GLM cannot turn it off; `minimal` is its shortest).
+With reasoning off the answer can still stop at the budget, with text, so the budget must fit the answer.
+A lower effort usually reasons less, but on `deepseek-v4-flash` and `qwen3.8-flash` it is a hint, not a cap; only `qwen3.6` and `gemma4` cap it, on Chat Completions. For a hard cap on `qwen3.6`, `gemma4` and `qwen3.8-flash`, see [Capping reasoning with a token budget](#capping-reasoning-with-a-token-budget).
+If you want the reasoning, give a generous budget and
+[stream the answer](#long-outputs-stream-them).
 
 ```bash
 curl https://api.nan.builders/v1/chat/completions \
@@ -399,6 +416,47 @@ const chat = await client.chat.completions.create({
   reasoning_effort: 'max' as any, // older SDK types do not list 'max'
   messages: [{ role: 'user', content: 'Write a one-line summary of the CAP theorem.' }],
 });
+```
+
+### Capping reasoning with a token budget.
+
+On `qwen3.6`, `gemma4` and `qwen3.8-flash` you can also cap the reasoning
+phase at a number of tokens, on Chat Completions. Send
+`thinking_token_budget` or `thinking_budget`: they are two names for the same
+parameter, so use whichever your code already sends. Each model
+receives the name it reads. Put it at the top level of the body or inside
+`extra_body`.
+
+- An integer from `1` to `32768` caps reasoning at that many tokens. It is a
+  hard cap: the model stops reasoning there and writes its answer.
+- `0` turns reasoning off, like `reasoning_effort: "none"`.
+- On NaN, a larger value (or one that is not an integer) is lowered to `32768`.
+
+Send either a budget or `reasoning_effort`, not both: combined, the result
+differs by model. On the other models a budget is not part of this contract
+(depending on the model it is rejected with a `400` or ignored); use
+`reasoning_effort` there. On Responses the budget is not guaranteed to apply;
+use `reasoning: {"effort": ...}` there.
+
+```bash
+curl https://api.nan.builders/v1/chat/completions \
+  -H "Authorization: Bearer $NAN_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model": "qwen3.8-flash",
+    "thinking_budget": 2048,
+    "messages": [{"role": "user", "content": "How many primes are there below 200?"}]
+  }'
+```
+
+With the OpenAI SDK it goes through `extra_body`:
+
+```python
+chat = client.chat.completions.create(
+    model="qwen3.8-flash",
+    extra_body={"thinking_budget": 2048},
+    messages=[{"role": "user", "content": "How many primes are there below 200?"}],
+)
 ```
 
 ## Long outputs: stream them.
