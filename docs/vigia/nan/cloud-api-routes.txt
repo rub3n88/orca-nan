@@ -1,3 +1,4 @@
+/api/account/contexts
 /api/account/discord
 /api/account/discord/unlink
 /api/account/email/request
@@ -27,6 +28,7 @@
 /api/admin/metrics/referral-economics
 /api/admin/metrics/stale-invitations
 /api/admin/metrics/timeseries
+/api/admin/mfa/coverage
 /api/admin/referrals/leaderboard
 /api/admin/referrals/paid-signups
 /api/admin/referrals/retention
@@ -41,6 +43,12 @@
 /api/auth/login/request
 /api/auth/logout
 /api/auth/me
+/api/auth/mfa
+/api/auth/mfa/challenge
+/api/auth/mfa/recovery-codes
+/api/auth/mfa/totp
+/api/auth/mfa/totp/confirm
+/api/auth/mfa/totp/setup
 /api/auth/signup
 /api/billing
 /api/billing/checkout

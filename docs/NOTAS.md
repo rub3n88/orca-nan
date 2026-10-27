@@ -198,6 +198,10 @@ Fuente: `stablyai/orca` en GitHub (`src/shared/plugins/*`, `src/main/plugins/*`,
   las páginas `notifications` y `secrets`. Los eventos de notificación son solo de automatizaciones
   (`approval.pending`, `run.failed`…): ninguno de uso ni cuota, así que no sirven para el aviso del
   80 %. `models.go`, `session.json` y `/usage` sin cambios: sin efecto en el plugin.
+- **CLI oficial v0.1.35: 2FA en el login (2026-10-27)**: `nan auth login` y el panel piden TOTP o
+  código de recuperación si la cuenta tiene MFA; cloud-api añade `/api/auth/mfa*`,
+  `/api/admin/mfa/coverage` y `/api/account/contexts`. El login conserva `apiKey` en `session.json`
+  (lo único que leemos) y la cuota sigue con la API key: sin efecto en el plugin ni en `nan-usage`.
 - **Contrato nuevo de `reasoning_effort` (2026-10-16, 0.2.9)**: `/docs/models` §«Controlling
   reasoning» reescribe la tabla. Valores `none`·`minimal`·`low`·`medium`·`high`·`xhigh`·`max` (en
   Responses, `reasoning: {"effort": …}`); `none` apaga el razonamiento en todos menos GLM, que siempre
