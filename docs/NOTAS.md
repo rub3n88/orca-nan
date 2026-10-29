@@ -242,6 +242,11 @@ Fuente: `stablyai/orca` en GitHub (`src/shared/plugins/*`, `src/main/plugins/*`,
 - Toda la doc de NaN tiene versión markdown en `https://nan.builders/api/docs/<slug>.md`, y el índice
   con hash por página en `https://nan.builders/api/docs/manifest.json`: es la señal que vigila el
   vigía, más fiable que el repo `helmcode/nan` (que sigue vivo, pero es la fuente, no lo publicado).
+- **`json_schema` de deepseek, 400 en las dos pasarelas (2026-10-29, en 0.2.11)**: la doc de modelos
+  deja de aceptar en `api.helmcode.com` los `json_schema` con stream, tools, `/responses`… que ya
+  rechazaba `api.nan.builders` («a paid fallback would hide it from you»). La nota de
+  `deepseek-v4-flash` en `MODEL_NOTES` lo dice. Informativo: embeddings, Kokoro y Whisper pasan a
+  GPU (sin RPM publicados; Whisper con timeout de 180 s en vez de ~2 min de audio).
 
 ## Decisiones
 
