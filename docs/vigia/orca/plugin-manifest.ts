@@ -1,119 +1,227 @@
 import { z } from 'zod'
-import { pluginCapabilitySchema } from './plugin-capabilities'
+import { pluginCapabilitySchema } from '../capabilities/plugin-capabilities'
+import { orcaEngineRangeSchema } from './plugin-manifest-engine-range'
 import {
-  PLUGIN_AGENT_PROFILE_LIMIT,
-  PLUGIN_KEYBINDING_LIMIT,
-  PLUGIN_LANGUAGE_PACK_LIMIT,
-  PLUGIN_VM_RECIPE_LIMIT,
-  pluginAgentProfileContributionSchema,
-  pluginKeybindingContributionSchema,
-  pluginLanguagePackContributionSchema,
-  pluginVmRecipeContributionSchema
-} from './plugin-content-pack-contributions'
-import {
-  pluginCommandIdSchema,
-  pluginIdSchema,
-  pluginRelativePathSchema
-} from './plugin-manifest-fields'
+  pluginContributesFields,
+  pluginReservedContributesFields
+} from '../contributions/plugin-contribution-points'
+import { pluginIdSchema, pluginRelativePathSchema } from './plugin-manifest-fields'
+import { pluginManifestDetailFields } from '../catalog/plugin-detail-fields'
+import { PLUGIN_ICON_RULE_TEXT, pluginManifestImageFields } from '../images/plugin-image-fields'
 import { validatePluginManifestContributions } from './plugin-manifest-contribution-validation'
+import { validatePluginEngineFloor } from './plugin-engine-floor'
+import { validatePluginManifestV2Rules } from './plugin-manifest-v2-rules'
+import { upgradePluginManifestV1Names } from './plugin-manifest-v1-names'
+import { formatPluginSchemaIssues } from './plugin-schema-issues'
+import { pluginApiMajorSchema } from '../workers/plugin-host-api-major'
+import {
+  pluginFieldDoc,
+  pluginPathFieldDoc,
+  PLUGIN_MANIFEST_V2_SINCE,
+  PLUGIN_SCHEMA_SINCE_V1
+} from './plugin-schema-field-docs'
+import {
+  pluginExecutionProfileSchema,
+  validatePluginExecutionProfile
+} from '../contributions/plugin-execution-profile'
 
-/** Shared orca-plugin.json validation keeps desktop, serve, relay and CLI behavior aligned. Contribution names mirror
- * Electron conventions for future adapters. Experimental until pluginApi v1 freezes. */
+/**
+ * Plugin manifest v1 and v2 (`orca-plugin.json` at the plugin root). The
+ * `contributes` key names deliberately mirror common Electron-ecosystem
+ * manifest conventions so future adapters stay cheap.
+ *
+ * Lives in `shared` so the desktop app, the headless `orca serve` runtime,
+ * the relay, and the CLI validate manifests identically (SSH/remote parity).
+ */
 
 const SEMVER_RE =
   /^(?:0|[1-9]\d*)\.(?:0|[1-9]\d*)\.(?:0|[1-9]\d*)(?:-(?:0|[1-9]\d*|\d*[A-Za-z-][0-9A-Za-z-]*)(?:\.(?:0|[1-9]\d*|\d*[A-Za-z-][0-9A-Za-z-]*))*)?(?:\+[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*)?$/
-export const PLUGIN_PANEL_LIMIT = 64
-export const PLUGIN_COMMAND_LIMIT = 256
 
-// Closed >=x.y.z grammar keeps v0 gating predictable; richer ranges can be added later.
-const orcaEngineRangeSchema = z
-  .string()
-  .max(64)
-  .regex(/^>=\d+\.\d+\.\d+$/, 'must be a ">=x.y.z" version range')
+export { orcaEngineRangeSchema, satisfiesOrcaEngineRange } from './plugin-manifest-engine-range'
 
-const panelContributionSchema = z.object({
-  id: pluginIdSchema,
-  title: z.string().min(1).max(256),
-  /** Lucide icon name rendered in the right-sidebar activity bar. */
-  icon: z.string().min(1).max(64).optional(),
-  /** HTML entry rendered inside a sandboxed panel frame. */
-  entry: pluginRelativePathSchema
-})
+const V1 = PLUGIN_SCHEMA_SINCE_V1
+const NEXT = PLUGIN_MANIFEST_V2_SINCE
 
-const commandContributionSchema = z.object({
-  id: pluginCommandIdSchema,
-  title: z.string().min(1).max(256),
-  context: z.enum(['global', 'worktree']).optional(),
-  /** Built-in action aliases remain declarative and do not activate a worker. */
-  action: pluginCommandIdSchema.optional()
-})
+const authorFields = {
+  name: z
+    .string()
+    .min(1)
+    .max(256)
+    .meta(pluginFieldDoc('Author or organization name.', V1, ['Acme'])),
+  url: z
+    .string()
+    .max(2048)
+    .optional()
+    .meta(pluginFieldDoc('Author homepage.', V1, ['https://example.com']))
+}
+const authorDoc = pluginFieldDoc('Who maintains the plugin.', V1)
+const enginesFields = {
+  orca: orcaEngineRangeSchema.meta(
+    pluginFieldDoc(
+      `Oldest Orca release this plugin runs on, as \`>=x.y.z\`. Raise it to the newest "Since" of any field you use; a format 2 manifest needs at least \`>=${NEXT}\`, because older Orca cannot read format 2.`,
+      V1,
+      [`>=${NEXT}`]
+    )
+  )
+}
+const enginesDoc = pluginFieldDoc(
+  'Host versions this plugin supports. Older hosts refuse to load it.',
+  V1
+)
 
-/** Closed event set permits server-side filtering to only subscribed events. */
-export const PLUGIN_EVENT_NAMES = [
-  'worktree.created',
-  'worktree.removed',
-  'agent.status.changed'
-] as const
-export const PLUGIN_EVENT_SUBSCRIPTION_LIMIT = PLUGIN_EVENT_NAMES.length
+// Why one field set: v1 and v2 differ only in the version, `execution` and `$schema`.
+const pluginManifestFields = {
+  id: pluginIdSchema.meta(
+    pluginFieldDoc(
+      'Plugin id, kebab-case. The install identity is `<publisher>.<id>`. The reserved names `constructor` and `prototype` are refused.',
+      V1,
+      ['gleam-syntax']
+    )
+  ),
+  // Why both ids: bare-id global uniqueness is unverifiable without a registry.
+  publisher: pluginIdSchema.meta(
+    pluginFieldDoc(
+      "Publisher slug, kebab-case. Must be the GitHub or GitLab user or organization that owns the repository (`acme` for `github.com/acme/gleam-syntax`), or the official and community catalogs reject the listing. The reserved names `constructor` and `prototype` are refused. The publishers `stablyai`, `official`, `anthropic`, `openai`, `github` and any starting `orca` (any case), and ids starting `orca-`, install only from Orca's official catalog.",
+      V1,
+      ['acme']
+    )
+  ),
+  name: z
+    .string()
+    .min(1)
+    .max(256)
+    .meta(pluginFieldDoc('Display name.', V1, ['Gleam'])),
+  version: z
+    .string()
+    .regex(SEMVER_RE, 'must be semver')
+    .meta(pluginFieldDoc('Plugin version, semver.', V1, ['1.2.0'])),
+  description: z
+    .string()
+    .max(4096)
+    .optional()
+    .meta(pluginFieldDoc('One or two sentences shown in the plugin list.', V1)),
+  author: z.object(authorFields).optional().meta(authorDoc),
+  repository: z
+    .string()
+    .max(2048)
+    .optional()
+    .meta(
+      pluginFieldDoc('Source repository URL.', V1, ['https://github.com/acme/orca-gleam-syntax'])
+    ),
+  ...pluginManifestDetailFields,
+  icon: pluginRelativePathSchema
+    .optional()
+    .meta(
+      pluginPathFieldDoc(
+        `Square image shown beside the plugin name. ${PLUGIN_ICON_RULE_TEXT}`,
+        V1,
+        ['assets/icon.png']
+      )
+    ),
+  engines: z.object(enginesFields).meta(enginesDoc),
+  main: pluginRelativePathSchema
+    .optional()
+    .meta(
+      pluginPathFieldDoc(
+        'Node entry run in an out-of-process plugin worker. Requires the `trusted-worker` execution profile, and is required by it, by `contributes.events` and by any command without an `action`.',
+        V1,
+        ['dist/main.mjs']
+      )
+    ),
+  contributes: z
+    .object({ ...pluginContributesFields, ...pluginReservedContributesFields })
+    .strict()
+    // Why prefault: runs `{}` through the schema, so every family's own default applies.
+    .prefault({})
+    .meta(pluginFieldDoc('What the plugin adds to Orca. Every point defaults to empty.', V1)),
+  capabilities: z
+    .array(pluginCapabilitySchema)
+    .max(32)
+    .default([])
+    .meta(pluginFieldDoc('Host APIs the plugin asks the user to grant. At most 32.', V1))
+}
 
-export type PluginEventName = (typeof PLUGIN_EVENT_NAMES)[number]
-
-const eventContributionSchema = z.object({
-  on: z.enum(PLUGIN_EVENT_NAMES)
-})
+const pluginApiDoc = 'Major version of the plugin host API this plugin targets.'
 
 const pluginManifestV1Object = z.object({
   manifestVersion: z.literal(1),
-  id: pluginIdSchema,
-  /** Qualify as publisher.id: bare-id global uniqueness cannot be verified without a registry. */
-  publisher: pluginIdSchema,
-  name: z.string().min(1).max(256),
-  version: z.string().regex(SEMVER_RE, 'must be semver'),
-  description: z.string().max(4096).optional(),
-  author: z
-    .object({ name: z.string().min(1).max(256), url: z.string().max(2048).optional() })
-    .optional(),
-  repository: z.string().max(2048).optional(),
-  icon: pluginRelativePathSchema.optional(),
-  /** Minimum host version gate; the host refuses to load below it. */
-  engines: z.object({ orca: orcaEngineRangeSchema }),
-  /** Host-API major version this plugin targets. */
-  pluginApi: z.literal(1),
-  /** Node entry executed inside the out-of-process plugin worker. */
-  main: pluginRelativePathSchema.optional(),
-  contributes: z
-    .object({
-      panels: z.array(panelContributionSchema).max(PLUGIN_PANEL_LIMIT).default([]),
-      commands: z.array(commandContributionSchema).max(PLUGIN_COMMAND_LIMIT).default([]),
-      events: z.array(eventContributionSchema).max(PLUGIN_EVENT_SUBSCRIPTION_LIMIT).default([]),
-      languagePacks: z
-        .array(pluginLanguagePackContributionSchema)
-        .max(PLUGIN_LANGUAGE_PACK_LIMIT)
-        .default([]),
-      keybindings: z
-        .array(pluginKeybindingContributionSchema)
-        .max(PLUGIN_KEYBINDING_LIMIT)
-        .default([]),
-      vmRecipes: z.array(pluginVmRecipeContributionSchema).max(PLUGIN_VM_RECIPE_LIMIT).default([]),
-      agents: z
-        .array(pluginAgentProfileContributionSchema)
-        .max(PLUGIN_AGENT_PROFILE_LIMIT)
-        .default([])
-    })
-    .strict()
-    // Why prefault: runs `{}` through the schema, so every family's own default applies.
-    .prefault({}),
-  capabilities: z.array(pluginCapabilitySchema).max(32).default([])
+  ...pluginManifestFields,
+  pluginApi: pluginApiMajorSchema.meta(pluginFieldDoc(pluginApiDoc, V1))
 })
 
-export const pluginManifestSchema = pluginManifestV1Object.superRefine(
-  validatePluginManifestContributions
-)
+// Why strict: v2 declares its execution profile, so unknown keys must not smuggle in behavior.
+export const pluginManifestV2Object = z
+  .object({
+    $schema: z
+      .string()
+      .max(2048)
+      .optional()
+      .meta(pluginFieldDoc('JSON Schema URL for editor completion. Ignored by Orca.', NEXT)),
+    manifestVersion: z
+      .literal(2)
+      .meta(pluginFieldDoc('Manifest format. Use 2 for new plugins.', NEXT)),
+    execution: pluginExecutionProfileSchema.meta(
+      pluginFieldDoc(
+        'Most authority the plugin needs, least first: `data` (themes, syntaxes, translations), `declarative` (commands, shortcuts, recipes), `sandboxed-ui` (panels), `trusted-worker` (`main` and events). Contributions beyond it fail validation.',
+        NEXT,
+        ['data']
+      )
+    ),
+    ...pluginManifestFields,
+    ...pluginManifestImageFields,
+    // Why strict here too: format 2 refuses unknown keys at every level; format 1 never did.
+    author: z.strictObject(authorFields).optional().meta(authorDoc),
+    engines: z.strictObject(enginesFields).meta(enginesDoc),
+    // Why optional: only code calls the host API, so data and declarative plugins leave it out.
+    pluginApi: pluginApiMajorSchema
+      .optional()
+      .meta(
+        pluginFieldDoc(
+          `${pluginApiDoc} Optional (defaults to 1), and refused on \`data\` and \`declarative\` plugins, which never call it.`,
+          V1
+        )
+      )
+  })
+  .strict()
+
+function buildPluginManifestSchema(enforceEngineFloor: boolean) {
+  return z.preprocess(
+    upgradePluginManifestV1Names,
+    z.discriminatedUnion('manifestVersion', [
+      pluginManifestV1Object.superRefine(validatePluginManifestContributions),
+      pluginManifestV2Object.superRefine((manifest, ctx) => {
+        validatePluginManifestContributions(manifest, ctx)
+        validatePluginExecutionProfile(manifest, ctx)
+        validatePluginManifestV2Rules(manifest, ctx)
+        if (enforceEngineFloor) {
+          validatePluginEngineFloor(pluginManifestV2Object, manifest, ctx)
+        }
+      })
+    ])
+  )
+}
+
+/** Authoring schema: also refuses an engines.orca below the newest field it uses. */
+export const pluginManifestSchema = buildPluginManifestSchema(true)
+// Why no floor at runtime: the floor only lets older hosts say "requires Orca X"; a host that
+// parses every field and meets engines.orca runs the plugin fine, so refusing it strands installs.
+const hostPluginManifestSchema = buildPluginManifestSchema(false)
 
 export type PluginManifest = z.infer<typeof pluginManifestSchema>
-export type PluginPanelContribution = z.infer<typeof panelContributionSchema>
-export type PluginCommandContribution = z.infer<typeof commandContributionSchema>
-export type PluginEventContribution = z.infer<typeof eventContributionSchema>
+export {
+  PLUGIN_PANEL_LIMIT,
+  type PluginPanelContribution
+} from '../contributions/plugin-panel-contribution'
+export {
+  PLUGIN_COMMAND_LIMIT,
+  type PluginCommandContribution
+} from '../contributions/plugin-command-contribution'
+export {
+  PLUGIN_EVENT_NAMES,
+  PLUGIN_EVENT_SUBSCRIPTION_LIMIT,
+  type PluginEventContribution,
+  type PluginEventName
+} from '../contributions/plugin-event-contribution'
 
 export {
   isSafePluginId,
@@ -132,35 +240,27 @@ export type PluginManifestParseResult =
   | { ok: true; manifest: PluginManifest }
   | { ok: false; error: string }
 
-export function parsePluginManifest(raw: unknown): PluginManifestParseResult {
-  const parsed = pluginManifestSchema.safeParse(raw)
+function parseWith(schema: typeof pluginManifestSchema, raw: unknown): PluginManifestParseResult {
+  const parsed = schema.safeParse(raw)
   if (parsed.success) {
     return { ok: true, manifest: parsed.data }
   }
-  const issue = parsed.error.issues[0]
-  const path = issue?.path.join('.') || '(root)'
-  return { ok: false, error: `${path}: ${issue?.message ?? 'invalid manifest'}` }
+  return { ok: false, error: formatPluginSchemaIssues(parsed.error.issues, raw) }
 }
 
-/** v0 engines gate: supports the ">=x.y.z" grammar the schema enforces.
- *  Prerelease/build suffixes on the host version are ignored for ordering. */
-export function satisfiesOrcaEngineRange(hostVersion: string, range: string): boolean {
-  const minimum = range.slice(2)
-  const parse = (value: string): number[] =>
-    value
-      .split(/[-+]/)[0]!
-      .split('.')
-      .map((part) => Number.parseInt(part, 10) || 0)
-  const host = parse(hostVersion)
-  const min = parse(minimum)
-  for (let i = 0; i < 3; i++) {
-    const a = host[i] ?? 0
-    const b = min[i] ?? 0
-    if (a !== b) {
-      return a > b
-    }
-  }
-  return true
+/** Strict authoring check (`validate:plugin`, catalog CI, dev folders). */
+export function parsePluginManifest(raw: unknown): PluginManifestParseResult {
+  return parseWith(pluginManifestSchema, raw)
 }
 
-export { isPluginPanelTabKey, isQualifiedPluginKey, pluginPanelTabKey } from './plugin-tab-key'
+/** Runtime read for install, discovery and update. Callers must still check engines.orca
+ *  against the host, which is what actually gates loading. */
+export function parseHostPluginManifest(raw: unknown): PluginManifestParseResult {
+  return parseWith(hostPluginManifestSchema, raw)
+}
+
+export {
+  isPluginPanelTabKey,
+  isQualifiedPluginKey,
+  pluginPanelTabKey
+} from '../frames/plugin-tab-key'

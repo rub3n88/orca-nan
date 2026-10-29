@@ -55,6 +55,16 @@ Fuente: `stablyai/orca` en GitHub (`src/shared/plugins/*`, `src/main/plugins/*`,
   créditos): otro campo del roster nativo, sin efecto para un plugin. Desde 2026-10-08 la doc cita
   saldos de crédito por proveedor (Claude, OpenCode Zen, Codex) junto a los límites: tampoco abre
   nada a plugins.
+- **Manifiesto v2** (en `main` desde 2026-10-29, sale con 1.4.245; el último release es 1.4.244):
+  `src/shared/plugins/` pasa a subcarpetas (`manifest/`, `capabilities/`, `workers/`, `frames/`…) y
+  las capacidades cambian de nombre: `storage` → `storage:own`, `secrets` → `secrets:own` y
+  `events:subscribe` se parte por dominio (`workspace:read` + `agent:read`); los eventos
+  `worktree.*` pasan a `workspace.*` (`agent.status.changed` sigue). Los manifiestos v1 siguen
+  cargando: `plugin-manifest-v1-names.ts` reescribe esos nombres al leerlos, así que el nuestro no
+  cambia. Pero la huella de consentimiento se calcula sobre los nombres nuevos y Orca dice que ligar
+  worker y panel «re-prompts every existing install once»: al actualizar Orca a 1.4.245 lo normal
+  es que pida **reconsentir** el plugin una vez. Pasar a v2 obligaría a `engines.orca >=1.4.245`:
+  no compensa mientras Orca siga en retirada en el hub.
 
 ### NaN
 

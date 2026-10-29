@@ -32,7 +32,7 @@ Premium tier: callable only with a key on the GLM 5.3 premium membership. \~753B
 
 ### deepseek-v4-flash - 305B MoE
 
-305B parameter MoE model, served as the Vision-Exp variant: it takes images as input. 1M token context. Tool calling and reasoning. 3B token monthly quota per member. Structured output: response\_format json\_object is supported (on api.nan.builders the prompt must contain the word JSON, otherwise it is rejected with a 400). json\_schema is accepted on non-streamed /chat/completions requests without tools: the answer is checked against your schema and, when it does not match, usually re-served by a provider that enforces it; an answer that could not be checked, or a miss the re-serve could not replace in time, is returned as is (validate it if your code depends on it). On api.nan.builders other json\_schema requests are rejected with a 400: streamed, with tools, on /responses, with n above 1, with a schema over 16 KB, not a valid JSON Schema, or one the gateway will not validate (a $ref outside the schema, $dynamicRef or $anchor, a nested $id, or too large once its $refs are inlined); on api.helmcode.com they are accepted. json\_object guarantees syntactically valid JSON only, not its shape: describe the schema in the prompt. For schema-constrained output in those other requests, use qwen3.6 or gemma4, where json\_schema with strict constrains fields, types and required keys; or, on this model, force one function tool whose parameters is your schema (see Examples). Your output budget is used exactly as sent (above 393216, its maximum, it is lowered to 393216), with reasoning on or off (max\_tokens and max\_completion\_tokens on /chat/completions, max\_output\_tokens on /responses). Reasoning tokens count inside that budget: with reasoning on, a small budget can be spent entirely on reasoning. On /chat/completions the answer then comes back with an empty content and finish\_reason "length" (the reasoning is in reasoning\_content, and usage.completion\_tokens\_details.reasoning\_tokens equals completion\_tokens; non-streamed calls also carry the response header x-nan-truncated-in-reasoning: true); on /responses the status is incomplete, with only a reasoning output item. Dense prompts can reason past 16k tokens. The reliable fix is reasoning off (reasoning\_effort "none" on /chat/completions, reasoning.effort "none" on /responses); a lower effort is a hint on this model, not a cap. Or give a generous budget and stream the answer.
+305B parameter MoE model, served as the Vision-Exp variant: it takes images as input. 1M token context. Tool calling and reasoning. 3B token monthly quota per member. Structured output: response\_format json\_object is supported (on api.nan.builders the prompt must contain the word JSON, otherwise it is rejected with a 400). json\_schema is accepted on non-streamed /chat/completions requests without tools: the answer is checked against your schema and, when it does not match, usually re-served by a provider that enforces it; an answer that could not be checked, or a miss the re-serve could not replace in time, is returned as is (validate it if your code depends on it). Every other json\_schema request is rejected with a 400, on BOTH api.nan.builders and api.helmcode.com: streamed, with tools, on /responses, with n above 1, with a schema over 16 KB, not a valid JSON Schema, or one the gateway will not validate (a $ref outside the schema, $dynamicRef or $anchor, a nested $id, or too large once its $refs are inlined). We refuse it there instead of deriving it to another provider: a request the gateway cannot honour is a client bug, and a paid fallback would hide it from you. json\_object guarantees syntactically valid JSON only, not its shape: describe the schema in the prompt. For schema-constrained output in those other requests, use qwen3.6 or gemma4, where json\_schema with strict constrains fields, types and required keys; or, on this model, force one function tool whose parameters is your schema (see Examples). Your output budget is used exactly as sent (above 393216, its maximum, it is lowered to 393216), with reasoning on or off (max\_tokens and max\_completion\_tokens on /chat/completions, max\_output\_tokens on /responses). Reasoning tokens count inside that budget: with reasoning on, a small budget can be spent entirely on reasoning. On /chat/completions the answer then comes back with an empty content and finish\_reason "length" (the reasoning is in reasoning\_content, and usage.completion\_tokens\_details.reasoning\_tokens equals completion\_tokens; non-streamed calls also carry the response header x-nan-truncated-in-reasoning: true); on /responses the status is incomplete, with only a reasoning output item. Dense prompts can reason past 16k tokens. The reliable fix is reasoning off (reasoning\_effort "none" on /chat/completions, reasoning.effort "none" on /responses); a lower effort is a hint on this model, not a cap. Or give a generous budget and stream the answer.
 
 **text generation, chat & vision**
 
@@ -163,9 +163,8 @@ Vector embedding model. MMTEB score 70.58 — top-tier open models. Supports 100
 **vector embeddings**
 
 - Dimension: 4096
-- Precision: Float32 (CPU)
-- RPM: 60
-- Batch size: 32
+- Precision: BF16 (GPU)
+- Max input: 32K tokens
 
 **use cases**
 
@@ -194,13 +193,12 @@ Vector embedding model. MMTEB score 70.58 — top-tier open models. Supports 100
 
 ### kokoro - v1.0
 
-82M parameter TTS with 67 voice packs. Sub-second latency on CPU.
+82M parameter TTS with 67 voice packs. Sub-second latency on GPU.
 
 **text-to-speech**
 
 - Latency: < 1s
 - Parameters: 82M
-- RPM: 15
 
 **available voices**
 
@@ -211,13 +209,13 @@ Vector embedding model. MMTEB score 70.58 — top-tier open models. Supports 100
 
 ### whisper - large-v3
 
-CPU-based STT with CTranslate2 and INT8. \~1x realtime. 99+ languages.
+GPU STT with faster-whisper-large-v3 (Speaches, fp16 on CUDA). 99+ languages.
 
 **speech-to-text**
 
-- Size: \~3 GB (INT8)
+- Size: \~4.3 GB (GPU VRAM, fp16)
 - WER ES: \~3.2%
-- RPM: 10
+- Timeout: 180 s
 
 **capabilities**
 
@@ -232,9 +230,9 @@ CPU-based STT with CTranslate2 and INT8. \~1x realtime. 99+ languages.
 
 Maximum size per request. Compressed formats (OGG/Opus, MP3) make better use of this limit than uncompressed WAV.
 
-**Timeout — audios > 2 min duration**
+**Request timeout — 180 s**
 
-Whisper processes on CPU at \~1x realtime. For audios longer than \~2 minutes, the proxy may return a `524` (timeout) error before transcription completes. Use compressed formats like **OGG/Opus** and split long files into ≤ 2 minute segments to avoid this.
+Transcription runs on GPU, much faster than realtime. Even so, very long audios can exceed the 180 s proxy limit — split long files into segments to avoid it.
 
 **Recommended formats**
 

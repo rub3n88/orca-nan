@@ -1,11 +1,35 @@
 import { z } from 'zod'
-import { PLUGIN_COMMAND_LIMIT, PLUGIN_EVENT_NAMES, pluginCommandIdSchema } from './plugin-manifest'
-import { PLUGIN_CAPABILITY_KINDS } from './plugin-capabilities'
+import {
+  PLUGIN_COMMAND_LIMIT,
+  PLUGIN_EVENT_NAMES,
+  pluginCommandIdSchema
+} from '../manifest/plugin-manifest'
+import { PLUGIN_CAPABILITY_KINDS } from '../capabilities/plugin-capabilities'
+import { pluginEvent, type PluginEvent } from '../frames/plugin-protocol'
 
-/** Validate fork-channel messages on both sides: third-party worker code cannot supply trusted structure. */
+/**
+ * The worker fork channel, on the shared envelope (plugin-protocol.ts). Validate both sides:
+ * third-party worker code cannot supply trusted structure. Host calls are the worker's `req`s;
+ * the methods and events below are the host's lifecycle traffic.
+ */
+
+export const WORKER_EVENTS = {
+  /** host → worker, {@link PluginWorkerInit}. */
+  init: 'init',
+  /** worker → host, `{ commands }` registered on activate. */
+  ready: 'ready',
+  log: 'log',
+  fatal: 'fatal',
+  shutdown: 'shutdown'
+} as const
+
+/** host → worker requests; the worker answers each with a `res`. */
+export const WORKER_METHODS = {
+  invokeCommand: 'command.invoke',
+  deliverEvent: 'event.deliver'
+} as const
 
 export const pluginWorkerInitSchema = z.object({
-  type: z.literal('init'),
   /** Qualified `<publisher>.<id>` key. */
   pluginId: z.string().min(1),
   pluginRoot: z.string().min(1),
@@ -14,90 +38,51 @@ export const pluginWorkerInitSchema = z.object({
   grantedCapabilities: z.array(z.enum(PLUGIN_CAPABILITY_KINDS))
 })
 
-export const pluginWorkerInvokeCommandSchema = z.object({
-  type: z.literal('invokeCommand'),
-  callId: z.number().int().nonnegative(),
+export const pluginWorkerInvokeParamsSchema = z.object({
   commandId: z.string().min(1),
   args: z.unknown().optional()
 })
 
-export const pluginWorkerDeliverEventSchema = z.object({
-  type: z.literal('deliverEvent'),
-  eventId: z.number().int().nonnegative(),
+export const pluginWorkerDeliverParamsSchema = z.object({
   event: z.enum(PLUGIN_EVENT_NAMES),
   payload: z.unknown()
 })
 
-export const pluginWorkerHostResultSchema = z.object({
-  type: z.literal('hostResult'),
-  callId: z.number().int().nonnegative(),
-  ok: z.boolean(),
-  value: z.unknown().optional(),
-  errorCode: z.string().optional(),
-  error: z.string().optional()
-})
-
-export const pluginWorkerShutdownSchema = z.object({ type: z.literal('shutdown') })
-
-export const pluginWorkerParentMessageSchema = z.discriminatedUnion('type', [
-  pluginWorkerInitSchema,
-  pluginWorkerInvokeCommandSchema,
-  pluginWorkerDeliverEventSchema,
-  pluginWorkerHostResultSchema,
-  pluginWorkerShutdownSchema
-])
-
 export const pluginWorkerReadySchema = z.object({
-  type: z.literal('ready'),
   /** Command ids the worker registered handlers for (⊆ manifest commands). */
   commands: z.array(pluginCommandIdSchema).max(PLUGIN_COMMAND_LIMIT)
 })
 
-export const pluginWorkerCommandResultSchema = z.object({
-  type: z.literal('commandResult'),
-  callId: z.number().int().nonnegative(),
-  ok: z.boolean(),
-  // Fork IPC supplies cloneable data, but callers still validate the opaque result’s shape.
-  value: z.unknown().optional(),
-  error: z.string().max(8192).optional()
-})
-
-export const pluginWorkerEventAckSchema = z.object({
-  type: z.literal('eventAck'),
-  eventId: z.number().int().nonnegative()
-})
-
-/** Worker→host API call (the plugin SDK's transport for host methods). */
-export const pluginWorkerHostCallSchema = z.object({
-  type: z.literal('hostCall'),
-  callId: z.number().int().nonnegative(),
-  method: z.string().min(1),
-  params: z.unknown().optional()
-})
-
 export const pluginWorkerLogSchema = z.object({
-  type: z.literal('log'),
   level: z.enum(['info', 'warn', 'error']),
   message: z.string().max(8192)
 })
 
-export const pluginWorkerFatalSchema = z.object({
-  type: z.literal('fatal'),
-  error: z.string().max(8192)
-})
+export const pluginWorkerFatalSchema = z.object({ error: z.string().max(8192) })
 
-export const pluginWorkerChildMessageSchema = z.discriminatedUnion('type', [
-  pluginWorkerReadySchema,
-  pluginWorkerCommandResultSchema,
-  pluginWorkerEventAckSchema,
-  pluginWorkerHostCallSchema,
-  pluginWorkerLogSchema,
-  pluginWorkerFatalSchema
+export type PluginWorkerInit = z.infer<typeof pluginWorkerInitSchema>
+
+const pluginWorkerChildEventSchema = z.discriminatedUnion('event', [
+  z.object({ event: z.literal(WORKER_EVENTS.ready), payload: pluginWorkerReadySchema }),
+  z.object({ event: z.literal(WORKER_EVENTS.log), payload: pluginWorkerLogSchema }),
+  z.object({ event: z.literal(WORKER_EVENTS.fatal), payload: pluginWorkerFatalSchema })
 ])
 
-export type PluginWorkerParentMessage = z.infer<typeof pluginWorkerParentMessageSchema>
-export type PluginWorkerChildMessage = z.infer<typeof pluginWorkerChildMessageSchema>
-export type PluginWorkerInit = z.infer<typeof pluginWorkerInitSchema>
+/** A worker → host lifecycle event, or null for anything else. */
+export function readPluginWorkerEvent(
+  message: PluginEvent
+): z.infer<typeof pluginWorkerChildEventSchema> | null {
+  const parsed = pluginWorkerChildEventSchema.safeParse(message)
+  return parsed.success ? parsed.data : null
+}
+
+export function pluginWorkerLog(level: 'info' | 'warn' | 'error', message: string): PluginEvent {
+  return pluginEvent(WORKER_EVENTS.log, { level, message: message.slice(0, 8192) })
+}
+
+export function pluginWorkerFatal(error: string): PluginEvent {
+  return pluginEvent(WORKER_EVENTS.fatal, { error: error.slice(0, 8192) })
+}
 
 export const PLUGIN_WORKER_READY_TIMEOUT_MS = 10_000
 export const PLUGIN_WORKER_INVOKE_TIMEOUT_MS = 30_000
