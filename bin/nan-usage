@@ -41,12 +41,12 @@ SESSION_FILE = os.path.expanduser("~/.config/nan/session.json")  # CLI oficial: 
 # se generan valores conservadores. "max" = respuesta máxima que un cliente debe
 # planificar ("Output" del CLI oficial / "Max answer" de la doc); sin él, 16K.
 MODEL_NOTES = {
-    "deepseek-v4-flash": {"name": "DeepSeek V4 Flash", "ctx": 1048575, "max": 32768, "input": ["text", "image"], "effort": "none apaga · minimal…max orientan (no topan)", "note": "reasoning · vision (Vision-Exp) · el recomendado para empezar · json_object sí (en api.nan.builders el prompt debe decir JSON), json_schema sí sin stream ni tools en /chat/completions (validado, no garantizado; con stream, tools o /responses → 400 en api.nan.builders) · con reasoning, max_tokens < 16K se sube a 16K"},
-    "glm5.3-flash": {"name": "GLM 5.3 Flash", "ctx": 1048576, "max": 32768, "input": ["text", "image"], "effort": "minimal…max · siempre razona (none → minimal)", "note": "reasoning verboso por defecto · el de código sin premium"},
-    "qwen3.8-flash": {"name": "Qwen 3.8 Flash", "ctx": 1048576, "max": 32768, "input": ["text", "image"], "effort": "none apaga · minimal…max orientan (no topan)", "note": "reasoning por defecto · respuesta máx 131K según doc · 1M de contexto desde 2026-09-30 (doc y CLI oficial ≥ v0.1.32)"},
-    "mimo-v2.6-flash": {"name": "Xiaomi MiMo V2.6 Flash", "ctx": 1048576, "max": 32768, "input": ["text", "image", "audio"], "effort": "none apaga · low·medium·high·max (minimal → low, xhigh → max)", "note": "omnimodal · el MiMo más nuevo · ficha en el CLI oficial desde v0.1.32 (1M · out 32K) · max_tokens ≥ 300 con reasoning"},
-    "gemma4": {"name": "Gemma 4", "ctx": 262144, "max": 65536, "input": ["text", "image"], "effort": "none·minimal apagan · low…max topan 2K–32K (xhigh = max)", "note": "multimodal · reasoning on por defecto (16K)"},
-    "qwen3.6": {"name": "Qwen 3.6", "ctx": 262144, "max": 65536, "input": ["text", "image"], "effort": "none·minimal apagan · low…max topan 2K–32K (xhigh = max)", "note": "generación anterior (doc: empieza por deepseek-v4-flash)"},
+    "deepseek-v4-flash": {"name": "DeepSeek V4 Flash", "ctx": 1048575, "max": 32768, "input": ["text", "image"], "effort": "none apaga · minimal…max orientan (no topan)", "note": "reasoning · vision (Vision-Exp) · el recomendado para empezar · json_object sí (en api.nan.builders el prompt debe decir JSON), json_schema sí sin stream ni tools en /chat/completions (validado, no garantizado; con stream, tools o /responses → 400, también en api.helmcode.com) · max_tokens se usa tal cual (tope 393216) y el reasoning gasta de él: si se agota, content vacío y finish_reason length (apágalo con none o da margen)"},
+    "glm5.3-flash": {"name": "GLM 5.3 Flash", "ctx": 1048576, "max": 32768, "input": ["text", "image"], "effort": "minimal…max · siempre razona (none → minimal)", "note": "reasoning verboso por defecto · el de código sin premium · respuesta máx 131K según doc"},
+    "qwen3.8-flash": {"name": "Qwen 3.8 Flash", "ctx": 1048576, "max": 32768, "input": ["text", "image"], "effort": "none apaga · minimal…max orientan (no topan) · thinking_budget 1–32768 sí topa", "note": "reasoning por defecto · respuesta máx 131K según doc · 1M de contexto desde 2026-09-30 (doc y CLI oficial ≥ v0.1.32)"},
+    "mimo-v2.6-flash": {"name": "Xiaomi MiMo V2.6 Flash", "ctx": 1048576, "max": 32768, "input": ["text", "image", "audio"], "effort": "none apaga · low·medium·high·max (minimal → low, xhigh → max)", "note": "omnimodal · el MiMo más nuevo · ficha en el CLI oficial desde v0.1.32 (1M · out 32K) · el reasoning cuenta dentro de max_tokens"},
+    "gemma4": {"name": "Gemma 4", "ctx": 262144, "max": 65536, "input": ["text", "image"], "effort": "none·minimal apagan · low…max topan 2K–32K (xhigh = max) · o thinking_budget 1–32768", "note": "multimodal · reasoning on por defecto (16K)"},
+    "qwen3.6": {"name": "Qwen 3.6", "ctx": 262144, "max": 65536, "input": ["text", "image"], "effort": "none·minimal apagan · low…max topan 2K–32K (xhigh = max) · o thinking_budget 1–32768", "note": "generación anterior (doc: empieza por deepseek-v4-flash)"},
     "glm5.3": {"name": "GLM 5.3 (premium)", "ctx": 1048576, "max": 32768, "input": ["text", "image", "audio", "video"], "effort": "minimal…max · siempre razona (none → minimal)", "note": "premium · multimodal (imagen, audio y vídeo desde 2026-10-01; el único con vídeo) · 3B/periodo de facturación · ventana 4h 400M"},
     "minimax-h3": {"name": "MiniMax H3", "ctx": 0, "input": ["text"], "note": "sin ficha en la doc ni en el CLI oficial: valores conservadores"},
     "qwen3-embedding": {"name": "Qwen3 Embedding", "ctx": 0, "input": ["text"], "note": "embeddings 4096d"},
@@ -65,6 +65,11 @@ MODEL_NOTES = {
 # xhigh·max; `none` apaga el razonamiento salvo en GLM. Un valor fuera de esa lista ya no es un
 # no-op garantizado: según el modelo da 400 o se ignora. La traza llega aparte, en
 # `message.reasoning_content` (Chat Completions) o como item `reasoning` (Responses).
+# Desde el 2026-10-19 el presupuesto de salida (`max_tokens`, `max_completion_tokens`,
+# `max_output_tokens`) se usa tal cual en todos (sin el suelo de 16K de deepseek; tope 131072 en
+# glm5.3-flash y 393216 en deepseek-v4-flash) y el razonamiento gasta de él. En qwen3.6, gemma4 y
+# qwen3.8-flash, `thinking_budget` (o `thinking_token_budget`) 1–32768 topa el razonamiento en
+# Chat Completions y 0 lo apaga; no mandarlo junto con `reasoning_effort`.
 CHAT_EXCLUDE = {"qwen3-embedding", "rerank", "whisper", "kokoro", "flux-2-klein", "qwen-image-2.1"}
 
 
