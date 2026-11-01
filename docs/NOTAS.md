@@ -247,6 +247,14 @@ Fuente: `stablyai/orca` en GitHub (`src/shared/plugins/*`, `src/main/plugins/*`,
   rechazaba `api.nan.builders` («a paid fallback would hide it from you»). La nota de
   `deepseek-v4-flash` en `MODEL_NOTES` lo dice. Informativo: embeddings, Kokoro y Whisper pasan a
   GPU (sin RPM publicados; Whisper con timeout de 180 s en vez de ~2 min de audio).
+- **`json_schema` de deepseek también con stream (2026-11-01, en 0.2.11)**: la doc de modelos acepta
+  ya `json_schema` en `/chat/completions` sin tools aunque vaya en streaming, en las dos pasarelas: el
+  stream se bufferiza, se valida contra el esquema y se reemite como SSE. Siguen en 400 tools,
+  `/responses` y esquemas no válidos o de más de 16 KB; `n` > 1 lo reduce a 1 `api.nan.builders` y lo
+  rechaza `api.helmcode.com`. La nota de `deepseek-v4-flash` en `MODEL_NOTES`, al día. Orca (main,
+  sin release instalada en el hub): `publisher` deprecado en v2 (se deriva del dueño del repo; el
+  nuestro, `rub3n88`, ya coincide), textos visibles saneados, `shell.openExternal`/`files.saveAs`
+  solo en frames con gesto del usuario y `secrets.protection`: sin efecto.
 
 ## Decisiones
 
