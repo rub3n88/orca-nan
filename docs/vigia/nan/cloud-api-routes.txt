@@ -61,6 +61,10 @@
 /api/billing/upgrade-premium
 /api/billing/workspace-subscriptions
 /api/community/signup
+/api/ephemeral/prepaid
+/api/ephemeral/prepaid/auto-recharge
+/api/ephemeral/prepaid/checkout
+/api/ephemeral/prepaid/purchases/
 /api/ephemeral/settings
 /api/ephemeral/usage
 /api/github/installations

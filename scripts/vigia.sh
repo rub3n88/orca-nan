@@ -38,7 +38,7 @@ curl -sfL --max-time 20 "$ORCA_RAW/src/shared/rate-limit-types.ts" -o "$TMP/orca
 git ls-remote https://github.com/stablyai/orca.git refs/heads/main 2>/dev/null | cut -c1-12 > "$TMP/orca-commit.txt"
 gh api repos/stablyai/orca/contents/examples/plugins --jq '.[].name' 2>/dev/null > "$TMP/orca-examples.txt" || true
 say "Orca: doc pública de plugins y versión instalada"
-curl -sL --max-time 20 https://www.onorca.dev/docs/settings | html2txt | sed -n '/Plugins (Experimental)/,/^Experimental$/p' > "$TMP/orca-docs-settings-plugins.txt" || true
+curl -sL --max-time 20 https://www.onorca.dev/docs/settings | html2txt | sed -n '/^Plugins\( (Experimental)\)\{0,1\}$/,/^Experimental$/{p;/^Experimental$/q;}' > "$TMP/orca-docs-settings-plugins.txt" || true
 curl -sL --max-time 20 https://www.onorca.dev/docs/agents/usage-tracking | html2txt | sed -n '/^Usage & rate-limit tracking$/,/← Previous/p' > "$TMP/orca-docs-usage-tracking.txt" || true
 defaults read /Applications/Orca.app/Contents/Info.plist CFBundleShortVersionString 2>/dev/null > "$TMP/orca-installed-version.txt" || echo "?" > "$TMP/orca-installed-version.txt"
 

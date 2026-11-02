@@ -18,6 +18,21 @@ DELETE /automations/{id}/triggers/{trigger_id} - Delete a trigger
 POST /automations/{id}/triggers/{trigger_id}/rotate - Rotate a webhook URL or signing secret
 POST /chat/completions - Create chat completion
 POST /completions - Create completion
+GET /contexts - List your contexts
+POST /contexts - Create a context
+POST /contexts/blobs/check - Check uploaded files
+PUT /contexts/blobs/{sha256} - Upload a file
+POST /contexts/blobs/{sha256}/uploads - Start a multipart upload
+GET /contexts/blobs/{sha256}/uploads/{upload_id} - Get a multipart upload
+DELETE /contexts/blobs/{sha256}/uploads/{upload_id} - Abort a multipart upload
+POST /contexts/blobs/{sha256}/uploads/{upload_id}/complete - Complete a multipart upload
+PUT /contexts/blobs/{sha256}/uploads/{upload_id}/parts/{n} - Upload a part
+GET /contexts/{id} - Get a context
+PATCH /contexts/{id} - Rename a context
+DELETE /contexts/{id} - Delete a context
+GET /contexts/{id}/file - Download a file
+GET /contexts/{id}/versions - List versions
+POST /contexts/{id}/versions - Publish a version
 POST /embeddings - Create embeddings
 POST /images/edits - Edit image
 POST /images/generations - Create image

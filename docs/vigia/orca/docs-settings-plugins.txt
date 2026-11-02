@@ -1,6 +1,5 @@
-Plugins (Experimental)
-Plugin system — Settings → Plugins. Turn the system on, then review and enable each plugin individually. Nothing runs until you consent.
-Marketplaces — add a git marketplace source, browse plugins, preview capabilities (panels, commands, language packs, VM recipes), install, update, or roll back.
-Plugin workers always run on this computer; SSH workspace actions still route through Orca.
-Capability and API shapes may change; treat third-party plugins as untrusted software.
+Plugins
+Open Settings → Plugins, use the status bar button, or press Cmd-Shift-X / Ctrl-Shift-X outside text fields. Browse the catalog, filter by category or install state, and enable or disable installed plugins.
+Plugins can add themes, icon themes, syntax highlighting, custom editors, and other capabilities. You can also add a git marketplace source and manage installed versions.
+The plugin system is on by default. Installing a plugin, including through an orca://plugins link, opens a review screen. Plugins that run code require your consent before installation and, once approved, have full access to your computer. Install only plugins you trust. Plugin workers run on this computer; SSH workspace actions still route through Orca.
 Experimental

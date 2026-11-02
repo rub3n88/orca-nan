@@ -1,4 +1,7 @@
+components-gallery
 hello-components
 hello-orca
-hostile-panel
+hello-tsx
+hello-worker-panel
 orca-gleam-syntax
+test-fixtures
