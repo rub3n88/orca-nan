@@ -1,3 +1,4 @@
+GET /api/partners/{partner}/payouts - Monthly payout report
 GET /api/workspaces - List workspaces
 GET /api/workspaces/{id} - Retrieve a workspace
 GET /approvals - List approvals

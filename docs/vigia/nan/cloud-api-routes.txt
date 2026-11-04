@@ -58,6 +58,7 @@
 /api/billing/migrate-currency
 /api/billing/payment-method
 /api/billing/portal
+/api/billing/upgrade-gentle
 /api/billing/upgrade-premium
 /api/billing/workspace-subscriptions
 /api/community/signup
@@ -99,8 +100,11 @@
 /api/upgrade/request
 /api/usage/quota
 /api/usage/token-packs
+/api/usage/token-packs/auto-recharge
+/api/usage/token-packs/auto-recharge-limit
 /api/usage/token-packs/balances
 /api/usage/token-packs/checkout
+/api/usage/token-packs/recharges/
 /api/video-gen
 /api/video-gen/
 /api/video-gen/refs
