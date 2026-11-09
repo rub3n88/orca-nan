@@ -98,6 +98,7 @@
 /api/spaces/free
 /api/upgrade/preview
 /api/upgrade/request
+/api/usage/credits
 /api/usage/models/period
 /api/usage/quota
 /api/usage/token-packs
