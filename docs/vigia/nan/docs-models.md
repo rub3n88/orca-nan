@@ -1,11 +1,12 @@
 # Cluster Models.
 
 Community models. All are accessed via the same OpenAI-compatible API
-with the same `base URL`.
+with the same `base URL`. The chat models are paid from one pool of credits:
+see [Choose your model](/docs/choose-a-model#what-the-billing-column-means).
 
 ### glm5.3 - 753B MoE
 
-Premium tier: callable only with a key on the GLM 5.3 premium membership. \~753B parameter MoE model, focused on coding and long-horizon agentic tasks. 1M token context. Multimodal: it takes images, audio and video as well as text. Tool calling and reasoning (emits a reasoning trace). 3,000M token quota per member, and the counter goes back to zero when your billing period starts. Also capped at 400M tokens per rolling 4h window, which is the limit a heavy coding-agent run reaches first.
+\~753B parameter MoE model, focused on coding and long-horizon agentic tasks. 1M token context. Multimodal: it takes images, audio and video as well as text. Tool calling and reasoning (emits a reasoning trace). Paid from your credits, and one of the larger models: it costs more per token than the flash models, so it uses credits faster. Also capped at 400M tokens per rolling 4h window, which is the limit a heavy coding-agent run reaches first.
 
 **multimodal text generation & chat · agentic coding**
 
@@ -15,7 +16,7 @@ Premium tier: callable only with a key on the GLM 5.3 premium membership. \~753B
 - Context: 1M tokens
 - Input modalities: text · image · audio · video
 - Output modalities: text
-- Allowance / billing period: 3,000M tokens / member
+- Billing: credits · larger model
 - Rolling 4h window: 400M tokens
 
 **capabilities**
@@ -28,11 +29,11 @@ Premium tier: callable only with a key on the GLM 5.3 premium membership. \~753B
 - Coding and long-horizon agentic tasks
 - 1M token context
 - Streaming generation (SSE)
-- Requires the GLM 5.3 premium tier
+- Price per 1M tokens at [cloud.nan.builders/tokens](https://cloud.nan.builders/tokens)
 
 ### deepseek-v4-flash - 305B MoE
 
-305B parameter MoE model, served as the Vision-Exp variant: it takes images as input. 1M token context. Tool calling and reasoning. 3B token monthly quota per member. Structured output: response\_format json\_object is supported (on api.nan.builders, on deepseek-v4-flash, the prompt must contain the word JSON, otherwise it is rejected with a 400 (the GLM models accept json\_object without it)). json\_schema is accepted on /chat/completions requests without tools, streamed or not: the answer is checked against your schema and, when it does not match, usually re-served by a provider that enforces it; an answer that could not be checked, or a miss the re-serve could not replace in time, is returned as is (validate it if your code depends on it). Every other json\_schema request is rejected with a 400 before the model is called, on BOTH api.nan.builders and api.helmcode.com: with tools, on /responses, with a schema over 16 KB, not a valid JSON Schema, or one the gateway will not validate (a $ref outside the schema, $dynamicRef or $anchor, a nested $id, or too large once its $refs are inlined). (`api.nan.builders` reduces `n` to 1 and answers a single response; `api.helmcode.com` rejects `n` above 1 with a 400.) Streamed requests are served too, on both hosts: the stream is buffered, the complete answer is checked against your schema and then re-emitted as SSE. We refuse instead of deriving to another provider: a request the gateway cannot honour is a client bug, and a paid fallback would hide it from you. json\_object guarantees syntactically valid JSON only, not its shape: describe the schema in the prompt. For schema-constrained output in those other requests, use qwen3.6 or gemma4, where json\_schema with strict constrains fields, types and required keys; or, on this model, force one function tool whose parameters is your schema (see Examples). Your output budget is used exactly as sent (above 393216, its maximum, it is lowered to 393216), with reasoning on or off (max\_tokens and max\_completion\_tokens on /chat/completions, max\_output\_tokens on /responses). Reasoning tokens count inside that budget: with reasoning on, a small budget can be spent entirely on reasoning. On /chat/completions the answer then comes back with an empty content and finish\_reason "length" (the reasoning is in reasoning\_content, and usage.completion\_tokens\_details.reasoning\_tokens equals completion\_tokens; non-streamed calls also carry the response header x-nan-truncated-in-reasoning: true); on /responses the status is incomplete, with only a reasoning output item. Dense prompts can reason past 16k tokens. The reliable fix is reasoning off (reasoning\_effort "none" on /chat/completions, reasoning.effort "none" on /responses); a lower effort is a hint on this model, not a cap. Or give a generous budget and stream the answer.
+305B parameter MoE model, served as the Vision-Exp variant: it takes images as input. 1M token context. Tool calling and reasoning. Paid from your credits. Structured output: response\_format json\_object is supported (on api.nan.builders, on deepseek-v4-flash, the prompt must contain the word JSON, otherwise it is rejected with a 400 (the GLM models accept json\_object without it)). json\_schema is accepted on /chat/completions requests without tools, streamed or not: the answer is checked against your schema and, when it does not match, usually re-served by a provider that enforces it; an answer that could not be checked, or a miss the re-serve could not replace in time, is returned as is (validate it if your code depends on it). Every other json\_schema request is rejected with a 400 before the model is called, on BOTH api.nan.builders and api.helmcode.com: with tools, on /responses, with a schema over 16 KB, not a valid JSON Schema, or one the gateway will not validate (a $ref outside the schema, $dynamicRef or $anchor, a nested $id, or too large once its $refs are inlined). (`api.nan.builders` reduces `n` to 1 and answers a single response; `api.helmcode.com` rejects `n` above 1 with a 400.) Streamed requests are served too, on both hosts: the stream is buffered, the complete answer is checked against your schema and then re-emitted as SSE. We refuse instead of deriving to another provider: a request the gateway cannot honour is a client bug, and a paid fallback would hide it from you. json\_object guarantees syntactically valid JSON only, not its shape: describe the schema in the prompt. For schema-constrained output in those other requests, use qwen3.6 or gemma4, where json\_schema with strict constrains fields, types and required keys; or, on this model, force one function tool whose parameters is your schema (see Examples). Your output budget is used exactly as sent (above 393216, its maximum, it is lowered to 393216), with reasoning on or off (max\_tokens and max\_completion\_tokens on /chat/completions, max\_output\_tokens on /responses). Reasoning tokens count inside that budget: with reasoning on, a small budget can be spent entirely on reasoning. On /chat/completions the answer then comes back with an empty content and finish\_reason "length" (the reasoning is in reasoning\_content, and usage.completion\_tokens\_details.reasoning\_tokens equals completion\_tokens; non-streamed calls also carry the response header x-nan-truncated-in-reasoning: true); on /responses the status is incomplete, with only a reasoning output item. Dense prompts can reason past 16k tokens. The reliable fix is reasoning off (reasoning\_effort "none" on /chat/completions, reasoning.effort "none" on /responses); a lower effort is a hint on this model, not a cap. Or give a generous budget and stream the answer.
 
 **text generation, chat & vision**
 
@@ -41,7 +42,7 @@ Premium tier: callable only with a key on the GLM 5.3 premium membership. \~753B
 - Context: 1M tokens
 - Input modalities: text · image
 - Output modalities: text
-- Monthly quota: 3B tokens / member
+- Billing: credits
 
 **capabilities**
 
@@ -51,10 +52,11 @@ Premium tier: callable only with a key on the GLM 5.3 premium membership. \~753B
 - JSON mode (`json_object`; on api.nan.builders the prompt must mention JSON) · `json_schema` on chat without tools (on api.nan.builders the other cases, e.g. with tools or on /responses: 400)
 - 1M token context
 - Streaming generation (SSE)
+- Price per 1M tokens at [cloud.nan.builders/tokens](https://cloud.nan.builders/tokens)
 
 ### glm5.3-flash - 320B-18B
 
-320B parameter MoE model (18B active), natively multimodal, with tool calling and reasoning. 1M token context. 2B token monthly quota per member. MIT license.
+320B parameter MoE model (18B active), natively multimodal, with tool calling and reasoning. 1M token context. Paid from your credits, at a fraction of the credits per token of glm5.3. MIT license.
 
 **multimodal text generation & chat**
 
@@ -63,7 +65,7 @@ Premium tier: callable only with a key on the GLM 5.3 premium membership. \~753B
 - Context: 1M tokens
 - Input modalities: text · image
 - Output modalities: text
-- Monthly quota: 2B tokens / member
+- Billing: credits
 - License: MIT
 
 **capabilities**
@@ -73,10 +75,11 @@ Premium tier: callable only with a key on the GLM 5.3 premium membership. \~753B
 - Vision (image input)
 - 1M token context
 - Streaming generation (SSE)
+- Price per 1M tokens at [cloud.nan.builders/tokens](https://cloud.nan.builders/tokens)
 
 ### qwen3.8-flash - 125B-6B
 
-125B parameter MoE model (6B active), multimodal with vision, tool calling and reasoning on by default. 1M token context (1,048,576 tokens). 500M token monthly quota per member.
+125B parameter MoE model (6B active), multimodal with vision, tool calling and reasoning on by default. 1M token context (1,048,576 tokens). Paid from your credits.
 
 **text generation, chat & vision**
 
@@ -85,7 +88,7 @@ Premium tier: callable only with a key on the GLM 5.3 premium membership. \~753B
 - Max answer: 131K tokens
 - Input modalities: text · image
 - Output modalities: text
-- Monthly quota: 500M tokens / member
+- Billing: credits
 - License: qwen-community-1.0
 
 **capabilities**
@@ -95,17 +98,18 @@ Premium tier: callable only with a key on the GLM 5.3 premium membership. \~753B
 - Vision (image input)
 - 1M token context
 - Streaming generation (SSE)
+- Price per 1M tokens at [cloud.nan.builders/tokens](https://cloud.nan.builders/tokens)
 
 ### mimo-v2.6-flash - omnimodal
 
-The newest Xiaomi MiMo, natively omnimodal with vision and audio input. 1M token context. Tool calling and reasoning. 1.0B token monthly quota per member.
+The newest Xiaomi MiMo, natively omnimodal with vision and audio input. 1M token context. Tool calling and reasoning. Paid from your credits.
 
 **omnimodal — text, vision & audio**
 
 - Context: 1M tokens
 - Input modalities: text · image · audio
 - Output modalities: text
-- Monthly quota: 1.0B tokens / member
+- Billing: credits
 
 **capabilities**
 
@@ -115,6 +119,90 @@ The newest Xiaomi MiMo, natively omnimodal with vision and audio input. 1M token
 - Audio (audio input)
 - 1M token context
 - Streaming generation (SSE)
+- Price per 1M tokens at [cloud.nan.builders/tokens](https://cloud.nan.builders/tokens)
+
+### kimi-k3.1-pro - larger model
+
+Kimi K3.1 Pro: Moonshot AI's frontier reasoning model, for agents and coding. Vision (image input). 1M token context. Paid from your credits like every other chat model, and one of the larger models: it costs more per token than the flash models, so it uses credits faster.
+
+**text generation, chat & vision · reasoning**
+
+- Context: 1M tokens
+- Max answer: 1M tokens
+- Input modalities: text · image
+- Output modalities: text
+- Billing: credits · larger model
+
+**capabilities**
+
+- Tool calling (function calling)
+- Reasoning model
+- Vision (image input)
+- 1M token context
+- Streaming generation (SSE)
+- Price per 1M tokens at [cloud.nan.builders/tokens](https://cloud.nan.builders/tokens)
+
+### qwen3.8-max - larger model
+
+Qwen3.8 Max: the largest Qwen 3.8 model, for hard reasoning and agents. Vision (image input). 1M token context. Paid from your credits like every other chat model, and one of the larger models: it costs more per token than the flash models, so it uses credits faster.
+
+**text generation, chat & vision · reasoning**
+
+- Context: 1M tokens
+- Max answer: 131K tokens
+- Input modalities: text · image
+- Output modalities: text
+- Billing: credits · larger model
+
+**capabilities**
+
+- Tool calling (function calling)
+- Reasoning model (`reasoning_effort`: `none` turns it off; `max_tokens` bounds only the answer, `max_completion_tokens` caps the total) · [details](#controlling-reasoning)
+- Vision (image input)
+- 1M token context
+- Streaming generation (SSE)
+- Price per 1M tokens at [cloud.nan.builders/tokens](https://cloud.nan.builders/tokens)
+
+### deepseek-v4-pro - larger model
+
+DeepSeek V4-Pro (0813 version): DeepSeek's large reasoning and coding model, served as its 0813 release. 1M token context. Paid from your credits like every other chat model, and one of the larger models: it costs more per token than the flash models, so it uses credits faster.
+
+**text generation & chat · reasoning**
+
+- Context: 1M tokens
+- Max answer: 393K tokens
+- Input modalities: text
+- Output modalities: text
+- Billing: credits · larger model
+
+**capabilities**
+
+- Tool calling (function calling)
+- Reasoning model
+- 1M token context
+- Streaming generation (SSE)
+- Price per 1M tokens at [cloud.nan.builders/tokens](https://cloud.nan.builders/tokens)
+
+### hy4 - larger model
+
+Hy4: Tencent's Hunyuan 4 model, for agents and long documents, and the lowest-priced of the larger models. Vision (image input). 1M token context. Paid from your credits like every other chat model, and one of the larger models: it costs more per token than the flash models, so it uses credits faster.
+
+**text generation, chat & vision · reasoning**
+
+- Context: 1M tokens
+- Max answer: 64K tokens
+- Input modalities: text · image
+- Output modalities: text
+- Billing: credits · larger model
+
+**capabilities**
+
+- Tool calling (function calling)
+- Reasons by default; if you send no `reasoning_effort` (nor an alias) we apply `low`, and your own value always wins. A small `max_tokens` (around 2K) can still return empty `content` on code tasks: use at least 4K, or set `reasoning_effort` yourself
+- Vision (image input)
+- 1M token context
+- Streaming generation (SSE)
+- Price per 1M tokens at [cloud.nan.builders/tokens](https://cloud.nan.builders/tokens)
 
 ### gemma4 - 26B-A4B
 
@@ -277,7 +365,10 @@ Qwen image model for text-to-image with strong prompt adherence and clean text r
 
 ## Controlling reasoning.
 
-Every chat model above reasons before it answers. The reasoning arrives
+Every chat model above reasons before it answers. The four larger models
+added in November (`kimi-k3.1-pro`, `qwen3.8-max`, `deepseek-v4-pro`, `hy4`) are not in
+the table below yet: they take `reasoning_effort` like any other model, but how
+each level behaves on them is not part of this contract. The reasoning arrives
 separately from the answer: in `message.reasoning_content` on Chat Completions,
 as a `reasoning` output item on Responses. One parameter controls it, the same
 on every model:
@@ -290,6 +381,12 @@ on every model:
 The values, from no reasoning to the deepest: `none`, `minimal`, `low`,
 `medium`, `high`, `xhigh`, `max`.
 
+**`qwen3.8-max`** reasons before answering, and `max_tokens` only bounds the visible answer:
+the reasoning comes on top of it. To cap the total (reasoning plus answer, and so the cost)
+use `max_completion_tokens`; a small value can be spent entirely on reasoning, leaving an empty answer.
+To turn reasoning off, send `reasoning_effort: "none"`.
+A reasoning budget (`thinking_budget` or `thinking_token_budget`) is not honoured on this model.
+
 **To turn reasoning off, send `none`.** That is the whole switch. It works on
 every model except GLM, which cannot stop reasoning (see the table).
 
@@ -298,6 +395,9 @@ Code written for another provider keeps working: we also accept
 `enable_thinking: false` and `chat_template_kwargs: {"enable_thinking": false}`,
 at the top level of the body or inside `extra_body`. Each one means exactly
 `none`. If a request carries both a value and one of these, the value wins.
+These aliases are not mapped on `kimi-k3.1-pro` and `deepseek-v4-pro`: on those
+two, use `reasoning_effort`. On `hy4` they are mapped, and a request that names
+no level at all gets `low`.
 
 | Model                     | Off switch (`none`)                                                                                      | The other values                                                                                                                                                                                                                                   |
 | ------------------------- | -------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -315,7 +415,11 @@ on the model it is rejected with a `400` or ignored.
 Your output budget (`max_tokens` or `max_completion_tokens` on Chat Completions,
 `max_output_tokens` on Responses) is used exactly as you send it on every model,
 except above the model's maximum on two models, where it is lowered to that maximum: 131072 on `glm5.3-flash`, 393216 on `deepseek-v4-flash`.
-Reasoning tokens are spent from that same budget.
+Reasoning tokens are spent from that same budget. One exception: on `qwen3.8-flash`, `max_tokens` only bounds the visible answer,
+and the reasoning comes on top of it. To cap the total (reasoning plus answer, and so the cost) use `max_completion_tokens`;
+a small value can be spent entirely on reasoning, leaving an empty answer.
+To cap the reasoning exactly, use `thinking_budget` (see [Capping reasoning with a token budget](#capping-reasoning-with-a-token-budget)).
+The same holds for `max_output_tokens` on Responses.
 
 **Empty answer with `finish_reason: "length"`?** With reasoning on, a small
 budget can run out before the answer starts. On Chat Completions you get an empty `content` with
@@ -463,15 +567,15 @@ A request without `stream: true` returns nothing until the whole answer is ready
 
 If you ask for long outputs (a large `max_tokens`, long code files, agents that write whole documents), use `stream: true`. A stream has no total time limit while it keeps producing: tokens reach you as they are generated, however long the answer runs. The one exception is a turn that produces only reasoning for a long time, see the [reasoning-only stream limit](#reasoning-only-stream-limit) below. Every chat model supports streaming on both endpoints (`/v1/chat/completions` and `/v1/responses`).
 
-A stream carries no token counts unless you ask for them: add `stream_options: {"include_usage": true}` to a `/v1/chat/completions` request and the last chunk before `[DONE]` carries `usage` for the whole turn (prompt, completion and reasoning tokens). Without it the frames carry the answer only, and a client that needs to budget against its monthly quota has to count tokens itself. `/v1/responses` reports usage in its terminal event, no flag needed.
+A stream carries no token counts unless you ask for them: add `stream_options: {"include_usage": true}` to a `/v1/chat/completions` request and the last chunk before `[DONE]` carries `usage` for the whole turn (prompt, completion and reasoning tokens). Without it the frames carry the answer only, and a client that needs to budget its credits has to count tokens itself. `/v1/responses` reports usage in its terminal event, no flag needed.
 
 ## Reasoning-only stream limit.
 
 Reasoning-heavy prompts can keep a model thinking for a long time before it writes anything. When a streaming turn has produced only reasoning — no `content`, no tool calls — for **420 seconds**, the platform closes the turn instead of letting it run into a dead end. A turn that is demonstrably thinking — it has already produced more than 45,000 reasoning characters — gets until **600 seconds**. The reasoning-character budget also scales with the size of your prompt: roughly 150,000 characters of headroom plus half the prompt's size in characters, capped at 300,000. When the platform closes the turn you receive `finish_reason: "length"` on an empty delta, followed by a usage chunk.
 
 That usage chunk is an estimate of what the attempt consumed up to the cut
-(prompt and reasoning tokens), marked `"estimated": true, "billed": false` —
-turns closed this way are not charged against your quota — and carries a
+(prompt and reasoning tokens), marked `"estimated": true, "billed": false`
+(turns closed this way are not charged to your credits), and carries a
 `nan_truncation` marker so clients can tell this closure apart from a real
 context-length cut. Request it with `stream_options: {"include_usage": true}`.
 
@@ -503,14 +607,13 @@ The limit exists to bound a known failure mode of thinking models: they occasion
 
 Audio, embedding and rerank endpoints have no concurrency limit.
 
-**glm5.3 · premium tier limits**
+**glm5.3 · rolling window limits**
 
 - Rolling 4h window: 400M tokens
-- Allowance / billing period: 3,000M tokens
 - Context window: 1M tokens
-- Concurrent requests: 10
+- Concurrent requests: 7 (base plan) · 10 (premium plan)
 
-400M tokens per rolling 4 hours is the limit a heavy coding-agent run reaches first, well before the allowance. Once you hit it, glm5.3 requests are rejected until the window slides forward: it is a rolling window, not a daily reset. The allowance counter goes back to zero when your billing period starts, and if you upgrade part-way into a period that first allowance is prorated to the share of the period you paid for.
+400M tokens per rolling 4 hours is the limit a heavy coding-agent run reaches first. Once you hit it, glm5.3 requests are rejected until the window slides forward: it is a rolling window, not a daily reset. It is separate from your credits: credits pay for the tokens, the window bounds how fast you can spend them on glm5.3.
 
 **tokens / min per model**
 

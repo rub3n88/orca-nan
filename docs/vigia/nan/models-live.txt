@@ -1,7 +1,11 @@
 deepseek-v4-flash
+deepseek-v4-pro
 flux-2-klein
 gemma4
+glm5.3
 glm5.3-flash
+hy4
+kimi-k3.1-pro
 kokoro
 mimo-v2.6-flash
 minimax-h3
@@ -9,5 +13,6 @@ qwen-image-2.1
 qwen3-embedding
 qwen3.6
 qwen3.8-flash
+qwen3.8-max
 rerank
 whisper

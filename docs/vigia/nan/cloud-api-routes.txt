@@ -106,6 +106,7 @@
 /api/usage/token-packs/auto-recharge-limit
 /api/usage/token-packs/balances
 /api/usage/token-packs/checkout
+/api/usage/token-packs/custom-quote
 /api/usage/token-packs/recharges/
 /api/video-gen
 /api/video-gen/

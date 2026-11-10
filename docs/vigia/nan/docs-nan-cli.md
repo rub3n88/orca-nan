@@ -40,7 +40,7 @@ The CLI opens a panel with tabs you move through with the arrow keys:
 | Setup   | Your API key and the automatic setup of tools              |
 | About   | Version and links                                          |
 
-The **Usage** tab is the fastest way to know how much quota you have left before starting a long agent session.
+The **Usage** tab is the fastest way to check your usage before starting a long agent session.
 
 ## Installation
 
