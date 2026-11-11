@@ -31,6 +31,8 @@ If you do not know which one to pick, look for what you want to do in the first 
 | Generate or edit an image                   | `flux-2-klein`                      | Text to image and image to image                                         |
 | Generate an image with clean text rendering | `qwen-image-2.1`                    | Text to image                                                            |
 
+Weighing models by cost? The [community model guide](/model-guide) compares the credit rates of the chat models, task by task, with a simulator for your own token mix.
+
 ## Every model
 
 | id                  | What for                                                          | Context | Accepts                      | Billing                          |
