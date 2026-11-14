@@ -78,8 +78,9 @@ recuerda que el CLI oficial ya configura OpenCode/Codex/Pi/droid/Hermes por sí 
 `config pi`: si usas `@gtrabanco/pi-nan-provider`, el bloque `providers.nan` lo genera la extensión
 (o pi-fleet) con los `compat` que necesita; ni este snippet ni el Setup del oficial —que reemplaza
 `providers.nan` entero— deben pisarlo. Pi solo admite `text` e `image` en `input` (con otro valor rechaza el
-fichero entero), así que `config pi` deja fuera el audio de `mimo-v2.6-flash` y el audio y vídeo de
-`glm5.3`; `config opencode` sí los lleva.
+fichero entero), así que `config pi` deja fuera el audio de `mimo-v2.6-flash`; `config opencode` sí lo lleva.
+`glm5.3` es solo texto (desde el 2026-11-14): una imagen, un audio o un vídeo en cualquier turno de la
+conversación da 400; ningún modelo de chat acepta vídeo.
 
 `usage` lee el endpoint **oficial** `GET /v1/usage` de NaN (desde el 2026-09-26): tokens y
 peticiones por día UTC y modelo, más el total histórico. Si falla, cae a la ruta no documentada de

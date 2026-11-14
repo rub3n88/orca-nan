@@ -255,6 +255,12 @@ Fuente: `stablyai/orca` en GitHub (`src/shared/plugins/*`, `src/main/plugins/*`,
   sin release instalada en el hub): `publisher` deprecado en v2 (se deriva del dueño del repo; el
   nuestro, `rub3n88`, ya coincide), textos visibles saneados, `shell.openExternal`/`files.saveAs`
   solo en frames con gesto del usuario y `secrets.protection`: sin efecto.
+- **`glm5.3` vuelve a solo texto (2026-11-14, en 0.2.11)**: `/docs/models` y `choose-a-model`
+  pasan `glm5.3` de texto · imagen · audio · vídeo a «Text only»: una petición con imagen, audio,
+  vídeo o fichero (también en turnos anteriores de la conversación) responde 400. Fuera la fila
+  «Hand the model a video»: ningún modelo de chat acepta vídeo (extraer fotogramas y mandarlos como
+  imágenes); `deepseek-v4-pro` tampoco lee imágenes. `MODEL_NOTES` de `glm5.3` pasa a `["text"]`
+  (deshace lo de 0.2.6), con lo que `config opencode` deja de anunciarle imagen/audio/vídeo.
 
 ## Decisiones
 
