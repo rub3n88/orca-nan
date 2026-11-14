@@ -15,45 +15,44 @@ That value is the **model id**, and it has to be spelled exactly. One dot too ma
 
 If you do not know which one to pick, look for what you want to do in the first column.
 
-| I want to                                   | Ask for                             | Why                                                                      |
-| ------------------------------------------- | ----------------------------------- | ------------------------------------------------------------------------ |
-| Chat or reason about something, plainly     | `deepseek-v4-flash`                 | It is the best general-purpose model on the cluster, and it reads images |
-| Drive a coding agent through long sessions  | `glm5.3`                            | It is built for that. One of the larger models: it uses credits faster   |
-| The same, spending fewer credits            | `glm5.3-flash`                      | Same 1M context, at a fraction of the credits per token                  |
-| Get an answer fast                          | `qwen3.8-flash`                     | Less depth, much less waiting                                            |
-| Hand the model an audio file directly       | `mimo-v2.6-flash`                   | It hears audio natively                                                  |
-| Hand the model a video                      | `glm5.3`                            | The only one that watches video                                          |
-| Describe or analyze an image                | `deepseek-v4-flash`                 | Any chat model will do; this is the best                                 |
-| Try things without spending credits         | `gemma4`                            | It does not draw credits                                                 |
-| Build a search engine or a RAG              | `qwen3-embedding` and then `rerank` | First you retrieve by similarity, then you reorder by relevance          |
-| Turn text into audio                        | `kokoro`                            | 67 voices, two of them Spanish                                           |
-| Transcribe audio                            | `whisper`                           | More than 99 languages, with automatic detection                         |
-| Generate or edit an image                   | `flux-2-klein`                      | Text to image and image to image                                         |
-| Generate an image with clean text rendering | `qwen-image-2.1`                    | Text to image                                                            |
+| I want to                                   | Ask for                             | Why                                                                                                                                                   |
+| ------------------------------------------- | ----------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Chat or reason about something, plainly     | `deepseek-v4-flash`                 | It is the best general-purpose model on the cluster, and it reads images                                                                              |
+| Drive a coding agent through long sessions  | `glm5.3`                            | It is built for that. One of the larger models: it uses credits faster                                                                                |
+| The same, spending fewer credits            | `glm5.3-flash`                      | Same 1M context, at a fraction of the credits per token                                                                                               |
+| Get an answer fast                          | `qwen3.8-flash`                     | Less depth, much less waiting                                                                                                                         |
+| Hand the model an audio file directly       | `mimo-v2.6-flash`                   | It hears audio natively                                                                                                                               |
+| Describe or analyze an image                | `deepseek-v4-flash`                 | Most chat models take images (not `glm5.3` or `deepseek-v4-pro`); this is the best. No chat model takes video: extract frames and send them as images |
+| Try things without spending credits         | `gemma4`                            | It does not draw credits                                                                                                                              |
+| Build a search engine or a RAG              | `qwen3-embedding` and then `rerank` | First you retrieve by similarity, then you reorder by relevance                                                                                       |
+| Turn text into audio                        | `kokoro`                            | 67 voices, two of them Spanish                                                                                                                        |
+| Transcribe audio                            | `whisper`                           | More than 99 languages, with automatic detection                                                                                                      |
+| Generate or edit an image                   | `flux-2-klein`                      | Text to image and image to image                                                                                                                      |
+| Generate an image with clean text rendering | `qwen-image-2.1`                    | Text to image                                                                                                                                         |
 
 Weighing models by cost? The [community model guide](/model-guide) compares the credit rates of the chat models, task by task, with a simulator for your own token mix.
 
 ## Every model
 
-| id                  | What for                                                          | Context | Accepts                      | Billing                          |
-| ------------------- | ----------------------------------------------------------------- | ------- | ---------------------------- | -------------------------------- |
-| `deepseek-v4-flash` | General chat and reasoning                                        | 1M      | text · image                 | credits                          |
-| `glm5.3`            | Coding agents and long tasks                                      | 1M      | text · image · audio · video | credits · larger model           |
-| `glm5.3-flash`      | Coding agents, fewer credits                                      | 1M      | text · image                 | credits                          |
-| `qwen3.8-flash`     | Fast answers                                                      | 1M      | text · image                 | credits                          |
-| `mimo-v2.6-flash`   | The newest MiMo, omnimodal                                        | 1M      | text · image · audio         | credits                          |
-| `kimi-k3.1-pro`     | Frontier reasoning for agents and coding                          | 1M      | text · image                 | credits · larger model           |
-| `qwen3.8-max`       | The largest Qwen 3.8, hard reasoning                              | 1M      | text · image                 | credits · larger model           |
-| `deepseek-v4-pro`   | Large reasoning and coding model                                  | 1M      | text                         | credits · larger model           |
-| `hy4`               | Agents and long documents, the lowest-priced of the larger models | 1M      | text · image                 | credits · larger model           |
-| `gemma4`            | Short tasks and testing                                           | 262K    | text · image                 | no counter                       |
-| `qwen3.6`           | Previous generation                                               | 262K    | text · image                 | no counter                       |
-| `qwen3-embedding`   | 4096-dimension vectors                                            | -       | text                         | no counter                       |
-| `rerank`            | Reorder by relevance                                              | -       | text                         | no counter                       |
-| `kokoro`            | Text to speech                                                    | -       | text                         | no counter                       |
-| `whisper`           | Speech to text                                                    | -       | audio                        | no counter                       |
-| `flux-2-klein`      | Generate and edit images                                          | -       | text · image                 | 100 requests/month               |
-| `qwen-image-2.1`    | Generate images (text→image)                                      | -       | text                         | 100 requests/month (shared pool) |
+| id                  | What for                                                          | Context | Accepts              | Billing                          |
+| ------------------- | ----------------------------------------------------------------- | ------- | -------------------- | -------------------------------- |
+| `deepseek-v4-flash` | General chat and reasoning                                        | 1M      | text · image         | credits                          |
+| `glm5.3`            | Coding agents and long tasks                                      | 1M      | text                 | credits · larger model           |
+| `glm5.3-flash`      | Coding agents, fewer credits                                      | 1M      | text · image         | credits                          |
+| `qwen3.8-flash`     | Fast answers                                                      | 1M      | text · image         | credits                          |
+| `mimo-v2.6-flash`   | The newest MiMo, omnimodal                                        | 1M      | text · image · audio | credits                          |
+| `kimi-k3.1-pro`     | Frontier reasoning for agents and coding                          | 1M      | text · image         | credits · larger model           |
+| `qwen3.8-max`       | The largest Qwen 3.8, hard reasoning                              | 1M      | text · image         | credits · larger model           |
+| `deepseek-v4-pro`   | Large reasoning and coding model                                  | 1M      | text                 | credits · larger model           |
+| `hy4`               | Agents and long documents, the lowest-priced of the larger models | 1M      | text · image         | credits · larger model           |
+| `gemma4`            | Short tasks and testing                                           | 262K    | text · image         | no counter                       |
+| `qwen3.6`           | Previous generation                                               | 262K    | text · image         | no counter                       |
+| `qwen3-embedding`   | 4096-dimension vectors                                            | -       | text                 | no counter                       |
+| `rerank`            | Reorder by relevance                                              | -       | text                 | no counter                       |
+| `kokoro`            | Text to speech                                                    | -       | text                 | no counter                       |
+| `whisper`           | Speech to text                                                    | -       | audio                | no counter                       |
+| `flux-2-klein`      | Generate and edit images                                          | -       | text · image         | 100 requests/month               |
+| `qwen-image-2.1`    | Generate images (text→image)                                      | -       | text                 | 100 requests/month (shared pool) |
 
 The full spec sheets, with parameters, licenses and reasoning modes, are in [Models](/docs/models).
 

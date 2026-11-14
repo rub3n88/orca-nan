@@ -6,15 +6,15 @@ see [Choose your model](/docs/choose-a-model#what-the-billing-column-means).
 
 ### glm5.3 - 753B MoE
 
-\~753B parameter MoE model, focused on coding and long-horizon agentic tasks. 1M token context. Multimodal: it takes images, audio and video as well as text. Tool calling and reasoning (emits a reasoning trace). Paid from your credits, and one of the larger models: it costs more per token than the flash models, so it uses credits faster. Also capped at 400M tokens per rolling 4h window, which is the limit a heavy coding-agent run reaches first.
+\~753B parameter MoE model, focused on coding and long-horizon agentic tasks. 1M token context. Text only: text in, text out, with no image, audio, video or file input; a request carrying one answers 400, earlier turns of the conversation included, so start a new session or switch to a model that takes images. Tool calling and reasoning (emits a reasoning trace). Paid from your credits, and one of the larger models: it costs more per token than the flash models, so it uses credits faster. Also capped at 400M tokens per rolling 4h window, which is the limit a heavy coding-agent run reaches first.
 
-**multimodal text generation & chat · agentic coding**
+**text generation & chat · agentic coding**
 
 - Type: MoE (\~753B total)
 - Quantization: NVFP4
 - Attention: Sparse attention
 - Context: 1M tokens
-- Input modalities: text · image · audio · video
+- Input modalities: text
 - Output modalities: text
 - Billing: credits · larger model
 - Rolling 4h window: 400M tokens
@@ -23,9 +23,6 @@ see [Choose your model](/docs/choose-a-model#what-the-billing-column-means).
 
 - Tool calling (function calling)
 - Reasoning control (`reasoning_effort`: `minimal` to `max`; always reasons, `none` is applied as `minimal`) · [details](#controlling-reasoning)
-- Vision (image input)
-- Audio (audio input)
-- Video (video input)
 - Coding and long-horizon agentic tasks
 - 1M token context
 - Streaming generation (SSE)
