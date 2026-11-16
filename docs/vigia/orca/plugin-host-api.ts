@@ -1,269 +1,348 @@
 import { z } from 'zod'
-import { PLUGIN_EVENT_NAMES } from './plugin-manifest'
-import type { PluginCapabilityKind } from './plugin-capabilities'
+import type { PluginSurface } from '../frames/plugin-protocol'
+import * as stored from './plugin-host-api-storage-schemas'
+import { PLUGIN_PANEL_BRIDGE_API } from './plugin-host-api-panel-methods'
+import { PLUGIN_WORKER_ACTIONS_API } from './plugin-host-api-worker-actions'
+import { PLUGIN_EDITOR_TYPOGRAPHY_API } from './plugin-host-api-editor-typography'
+import {
+  PLUGIN_TERMINAL_ID_MAX_LENGTH,
+  pluginWorkspaceContextSchema
+} from './plugin-host-api-workspace-context'
+import {
+  ALL_SURFACES,
+  FRAMES_ONLY,
+  pluginHostMethodOffered,
+  pluginHostMethodNewestMinorFor,
+  spec,
+  WORKER_ONLY,
+  type PluginHostMethodSpec
+} from './plugin-host-method-spec'
+
+export type { PluginHostMethodSpec } from './plugin-host-method-spec'
+export {
+  PLUGIN_TERMINAL_ID_MAX_LENGTH,
+  PLUGIN_WORKSPACE_LABEL_MAX_LENGTH,
+  PLUGIN_WORKSPACE_TERMINAL_LIMIT,
+  pluginWorkspaceContextSchema
+} from './plugin-host-api-workspace-context'
 
 /**
- * Host API v0 — the separately-versioned public facade plugins call. Every
+ * Host API 1 (`pluginApi: 1`) — the separately-versioned public facade plugins call. Every
  * method carries params AND result schemas plus capability/mutation metadata;
  * handlers (bound in main) delegate to runtime services. The raw runtime-RPC
  * registry is never exposed: its methods have no result schemas and evolve at
  * internal velocity.
  *
- * This table is the single source of truth for the capability gate, the panel
- * bridge action set, and the worker SDK. Electron-free by design: desktop
+ * This table is the single source of truth for the capability gate, which surfaces
+ * (worker, panel, editor) may call what, the generated reference and the plugin SDK.
+ * Every params schema is strict: an older host refuses a newer flag with `invalid_params`
+ * instead of running the call without it. Electron-free by design: desktop
  * main, headless serve, the relay conformance path, and tests all import it.
  *
- * EXPERIMENTAL: additive-only within pluginApi major 1 once frozen; no
- * stability promises before then.
+ * Frozen within major 1: additive only. The policy that binds this
+ * table is in docs/reference/plugin-host-api.md, generated from it.
  */
 
 export const PANEL_ACTION_TEXT_MAX_LENGTH = 4096
-export const PLUGIN_WORKSPACE_TERMINAL_LIMIT = 50
-export const PLUGIN_WORKSPACE_LABEL_MAX_LENGTH = 512
-export const PLUGIN_TERMINAL_ID_MAX_LENGTH = 1024
+const workspaceReadContextParams = z.strictObject({}).optional()
 
-const workspaceReadContextParams = z.object({}).strict().optional()
-const workspaceReadContextResult = z
-  .object({
-    branch: z.string().max(PLUGIN_WORKSPACE_LABEL_MAX_LENGTH),
-    displayName: z.string().max(PLUGIN_WORKSPACE_LABEL_MAX_LENGTH),
-    /** Terminals of the focused worktree, so callers can address a specific
-     *  terminal id — the API has no "active terminal" write target. */
-    terminals: z
-      .array(
-        z
-          .object({
-            id: z.string().min(1).max(PLUGIN_TERMINAL_ID_MAX_LENGTH)
-          })
-          .strict()
-      )
-      .max(PLUGIN_WORKSPACE_TERMINAL_LIMIT)
-  })
-  .strict()
-  .nullable()
-
-const terminalSendTextParams = z.object({
-  /** Explicit target. Never "the active terminal": a focus change must not
-   *  redirect a delayed plugin write into another pane (design-doc rule). */
+const terminalSendTextParams = z.strictObject({
+  /** Explicit target prevents delayed writes following focus changes into another pane. */
   terminalId: z.string().min(1).max(PLUGIN_TERMINAL_ID_MAX_LENGTH),
   text: z.string().min(1).max(PANEL_ACTION_TEXT_MAX_LENGTH),
   enter: z.boolean().default(false)
 })
 const terminalSendTextResult = z.object({ accepted: z.boolean() })
 
-const notificationsShowParams = z.object({
+const notificationsShowParams = z.strictObject({
   title: z.string().min(1).max(120),
   body: z.string().max(1000).optional()
 })
 const notificationsShowResult = z.object({ delivered: z.boolean() })
 
-const RESERVED_STORAGE_KEYS = new Set(['__proto__', 'prototype', 'constructor'])
-const storageKeySchema = z
-  .string()
-  .min(1)
-  .max(256)
-  .refine((key) => !RESERVED_STORAGE_KEYS.has(key), 'reserved storage key')
-const pluginJsonValueSchema = z.json()
-/** Caps keep per-plugin storage an honest key-value store, not a database. */
-export const PLUGIN_STORAGE_VALUE_MAX_BYTES = 256 * 1024
-export const PLUGIN_STORAGE_TOTAL_MAX_BYTES = 5 * 1024 * 1024
-export const PLUGIN_STORAGE_KEY_LIMIT = 1024
+export {
+  PLUGIN_STORAGE_KEY_LIMIT,
+  PLUGIN_STORAGE_TOTAL_MAX_BYTES,
+  PLUGIN_STORAGE_VALUE_MAX_BYTES,
+  type PluginJsonValue
+} from './plugin-host-api-storage-schemas'
 
-const storageGetParams = z.object({ key: storageKeySchema })
-const storageGetResult = z.object({ value: pluginJsonValueSchema })
-const storageSetParams = z.object({ key: storageKeySchema, value: pluginJsonValueSchema })
-const storageSetResult = z.object({ ok: z.literal(true) })
-const storageDeleteParams = z.object({ key: storageKeySchema })
-const storageDeleteResult = z.object({ ok: z.literal(true) })
-const storageKeysParams = z.object({}).strict().optional()
-const storageKeysResult = z.object({ keys: z.array(z.string()).max(PLUGIN_STORAGE_KEY_LIMIT) })
+/** Frame methods that only run on a click or key press in the frame (`userActivation`). */
+export const PLUGIN_FRAME_USER_METHODS = {
+  openExternal: 'shell.openExternal',
+  saveAs: 'files.saveAs'
+} as const
 
-const secretsGetParams = z.object({ key: storageKeySchema })
-const secretsGetResult = z.object({ value: z.string().nullable() })
-const secretsSetParams = z.object({ key: storageKeySchema, value: z.string().max(64 * 1024) })
-const secretsSetResult = z.object({ ok: z.literal(true) })
-const secretsDeleteParams = z.object({ key: storageKeySchema })
-const secretsDeleteResult = z.object({ ok: z.literal(true) })
+export const PLUGIN_EXTERNAL_URL_MAX_LENGTH = 8192
+export const PLUGIN_EXTERNAL_URL_PROTOCOLS: readonly string[] = ['http:', 'https:', 'mailto:']
+export const PLUGIN_SAVE_AS_MAX_BYTES = 64 * 1024 * 1024
 
-const settingsGetParams = z.object({}).strict().optional()
-const settingsGetResult = z.object({ settings: z.record(z.string(), pluginJsonValueSchema) })
-const settingsSetParams = z.object({ key: storageKeySchema, value: pluginJsonValueSchema })
-const settingsSetResult = z.object({ ok: z.literal(true) })
-
-const eventsSubscribeParams = z.object({
-  events: z.array(z.enum(PLUGIN_EVENT_NAMES)).min(1).max(PLUGIN_EVENT_NAMES.length)
+const shellOpenExternalParams = z.strictObject({
+  url: z
+    .string()
+    .min(1)
+    .max(PLUGIN_EXTERNAL_URL_MAX_LENGTH)
+    .refine(isPluginExternalUrl, 'url must be an http:, https: or mailto: URL')
 })
-const eventsSubscribeResult = z.object({ subscribed: z.array(z.enum(PLUGIN_EVENT_NAMES)) })
+/** `reason`, when not opened: the person said no, or nobody could be asked (Orca's window hidden). */
+const shellOpenExternalResult = z.object({
+  opened: z.boolean(),
+  reason: z.enum(['cancelled', 'consent-unavailable']).optional()
+})
 
-export type PluginHostMethodSpec = {
-  name: string
-  /** pluginApi minor the method appeared in (`1.0` for the v0 set). */
-  since: string
-  /** Machine-readable resource boundary enforced by the host binding. */
-  scope: 'active-worktree' | 'explicit-terminal' | 'plugin-private' | 'desktop' | 'host-events'
-  stability: 'experimental'
-  capability: PluginCapabilityKind
-  /** Mutations are audit-logged with actor `plugin:<id>`. */
-  mutation: boolean
-  /** Whether sandboxed panels may call this over the postMessage bridge.
-   *  Workers can call every method. */
-  panel: boolean
-  params: z.ZodTypeAny
-  result: z.ZodTypeAny
+const saveAsDataSchema = z.union([
+  z.string().max(PLUGIN_SAVE_AS_MAX_BYTES),
+  // Why Uint8Array too: IPC between Orca's own processes may hand bytes over as a view.
+  z
+    .custom<ArrayBuffer | Uint8Array>(
+      (value) => value instanceof ArrayBuffer || value instanceof Uint8Array,
+      'data must be a string or ArrayBuffer'
+    )
+    .refine((value) => value.byteLength <= PLUGIN_SAVE_AS_MAX_BYTES, 'data exceeds 64 MiB')
+    // Names the type in the generated reference, which otherwise prints unrepresentable as JSON.
+    .meta({ type: 'ArrayBuffer' })
+])
+const filesSaveAsParams = z.strictObject({
+  suggestedName: z.string().min(1).max(255).optional(),
+  mimeType: z.string().min(1).max(255).optional(),
+  data: saveAsDataSchema
+})
+/** The chosen path never reaches the plugin; a cancelled dialog is a result, not an error. */
+const filesSaveAsResult = z.object({ status: z.enum(['saved', 'cancelled']) })
+
+export function isPluginExternalUrl(url: string): boolean {
+  try {
+    return PLUGIN_EXTERNAL_URL_PROTOCOLS.includes(new URL(url).protocol)
+  } catch {
+    return false
+  }
 }
 
-const spec = <P extends z.ZodTypeAny, R extends z.ZodTypeAny>(
-  entry: Omit<PluginHostMethodSpec, 'params' | 'result' | 'stability'> & {
-    params: P
-    result: R
-  }
-): PluginHostMethodSpec => ({ ...entry, stability: 'experimental' })
-
-export const PLUGIN_HOST_API_V0: readonly PluginHostMethodSpec[] = [
-  spec({
-    name: 'workspace.readContext',
-    since: '1.0',
-    scope: 'active-worktree',
+export const PLUGIN_HOST_API = {
+  'workspace.readContext': spec({
+    summary:
+      'Id, branch, name and terminal ids of the focused workspace, or null when none is focused.',
+    since: 0,
+    scope: 'active-workspace',
     capability: 'workspace:read',
     mutation: false,
-    panel: true,
+    surfaces: ALL_SURFACES,
     params: workspaceReadContextParams,
-    result: workspaceReadContextResult
+    result: pluginWorkspaceContextSchema
   }),
-  spec({
-    name: 'terminal.sendText',
-    since: '1.0',
+  'terminal.sendText': spec({
+    summary: 'Types text into one terminal named by id, optionally pressing Enter.',
+    since: 0,
     scope: 'explicit-terminal',
     capability: 'terminal:send',
     mutation: true,
-    panel: true,
+    // Why: text plus Enter runs shell commands (local or SSH), so only full-access workers get it.
+    surfaces: WORKER_ONLY,
     params: terminalSendTextParams,
     result: terminalSendTextResult
   }),
-  spec({
-    name: 'notifications.show',
-    since: '1.0',
+  'notifications.show': spec({
+    summary: 'Shows a desktop notification.',
+    since: 0,
     scope: 'desktop',
     capability: 'notifications:show',
     mutation: true,
-    panel: true,
+    surfaces: ALL_SURFACES,
     params: notificationsShowParams,
     result: notificationsShowResult
   }),
-  spec({
-    name: 'storage.get',
-    since: '1.0',
+  'storage.get': spec({
+    summary: "Reads a JSON value from the plugin's private store; null when absent.",
+    since: 0,
     scope: 'plugin-private',
-    capability: 'storage',
+    capability: 'storage:own',
     mutation: false,
-    panel: false,
-    params: storageGetParams,
-    result: storageGetResult
+    framesSince: 2,
+    surfaces: ALL_SURFACES,
+    params: stored.storageGetParams,
+    result: stored.storageGetResult
   }),
-  spec({
-    name: 'storage.set',
-    since: '1.0',
+  'storage.set': spec({
+    summary: "Writes a JSON value to the plugin's private store.",
+    since: 0,
     scope: 'plugin-private',
-    capability: 'storage',
+    capability: 'storage:own',
     mutation: true,
-    panel: false,
-    params: storageSetParams,
-    result: storageSetResult
+    framesSince: 2,
+    surfaces: ALL_SURFACES,
+    params: stored.storageSetParams,
+    result: stored.storageSetResult
   }),
-  spec({
-    name: 'storage.delete',
-    since: '1.0',
+  'storage.delete': spec({
+    summary: "Removes a key from the plugin's private store.",
+    since: 0,
     scope: 'plugin-private',
-    capability: 'storage',
+    capability: 'storage:own',
     mutation: true,
-    panel: false,
-    params: storageDeleteParams,
-    result: storageDeleteResult
+    framesSince: 2,
+    surfaces: ALL_SURFACES,
+    params: stored.storageDeleteParams,
+    result: stored.storageDeleteResult
   }),
-  spec({
-    name: 'storage.keys',
-    since: '1.0',
+  'storage.keys': spec({
+    summary: "Lists the keys in the plugin's private store.",
+    since: 0,
     scope: 'plugin-private',
-    capability: 'storage',
+    capability: 'storage:own',
     mutation: false,
-    panel: false,
-    params: storageKeysParams,
-    result: storageKeysResult
+    framesSince: 2,
+    surfaces: ALL_SURFACES,
+    params: stored.storageKeysParams,
+    result: stored.storageKeysResult
   }),
-  spec({
-    name: 'secrets.get',
-    since: '1.0',
+  'secrets.get': spec({
+    summary: "Reads a secret from the plugin's encrypted secrets file; null when absent.",
+    since: 0,
     scope: 'plugin-private',
-    capability: 'secrets',
+    capability: 'secrets:own',
     mutation: false,
-    panel: false,
-    params: secretsGetParams,
-    result: secretsGetResult
+    framesSince: 2,
+    surfaces: ALL_SURFACES,
+    params: stored.secretsGetParams,
+    result: stored.secretsGetResult
   }),
-  spec({
-    name: 'secrets.set',
-    since: '1.0',
+  'secrets.set': spec({
+    summary: "Stores a secret in the plugin's encrypted secrets file.",
+    since: 0,
     scope: 'plugin-private',
-    capability: 'secrets',
+    capability: 'secrets:own',
     mutation: true,
-    panel: false,
-    params: secretsSetParams,
-    result: secretsSetResult
+    framesSince: 2,
+    surfaces: ALL_SURFACES,
+    params: stored.secretsSetParams,
+    result: stored.secretsSetResult
   }),
-  spec({
-    name: 'secrets.delete',
-    since: '1.0',
+  'secrets.delete': spec({
+    summary: "Removes a secret from the plugin's encrypted secrets file.",
+    since: 0,
     scope: 'plugin-private',
-    capability: 'secrets',
+    capability: 'secrets:own',
     mutation: true,
-    panel: false,
-    params: secretsDeleteParams,
-    result: secretsDeleteResult
+    framesSince: 2,
+    surfaces: ALL_SURFACES,
+    params: stored.secretsDeleteParams,
+    result: stored.secretsDeleteResult
   }),
-  spec({
-    name: 'settings.get',
-    since: '1.0',
+  'secrets.protection': spec({
+    summary:
+      'How secrets are protected at rest: `os-keyring`, or `unavailable` (no OS key store, or Linux `basic_text`), where `secrets.set` fails.',
+    since: 1,
+    scope: 'plugin-private',
+    capability: 'secrets:own',
+    mutation: false,
+    framesSince: 2,
+    surfaces: ALL_SURFACES,
+    params: stored.secretsProtectionParams,
+    result: stored.secretsProtectionResult
+  }),
+  'settings.get': spec({
+    summary: 'Reads every setting the plugin owns.',
+    since: 0,
     scope: 'plugin-private',
     capability: 'settings:own',
     mutation: false,
-    panel: false,
-    params: settingsGetParams,
-    result: settingsGetResult
+    framesSince: 2,
+    surfaces: ALL_SURFACES,
+    params: stored.settingsGetParams,
+    result: stored.settingsGetResult
   }),
-  spec({
-    name: 'settings.set',
-    since: '1.0',
+  'settings.set': spec({
+    summary: 'Writes one setting the plugin owns.',
+    since: 0,
     scope: 'plugin-private',
     capability: 'settings:own',
     mutation: true,
-    panel: false,
-    params: settingsSetParams,
-    result: settingsSetResult
+    framesSince: 2,
+    surfaces: ALL_SURFACES,
+    params: stored.settingsSetParams,
+    result: stored.settingsSetResult
   }),
-  spec({
-    name: 'events.subscribe',
-    since: '1.0',
-    scope: 'host-events',
-    capability: 'events:subscribe',
+  'shell.openExternal': spec({
+    summary:
+      'Opens an http:, https: or mailto: URL in the default browser. Needs a click or key press in the frame; desktop app only. Orca asks the person before an http(s) host the plugin was not allowed; `opened` is false if they cancel.',
+    since: 1,
+    scope: 'desktop',
+    capability: null,
+    userActivation: true,
     mutation: false,
-    panel: false,
-    params: eventsSubscribeParams,
-    result: eventsSubscribeResult
-  })
-]
-
-const SPEC_BY_NAME = new Map(PLUGIN_HOST_API_V0.map((entry) => [entry.name, entry]))
-
-export function getPluginHostMethodSpec(name: string): PluginHostMethodSpec | null {
-  return SPEC_BY_NAME.get(name) ?? null
+    surfaces: FRAMES_ONLY,
+    params: shellOpenExternalParams,
+    result: shellOpenExternalResult
+  }),
+  'files.saveAs': spec({
+    summary:
+      "Offers data (a string or ArrayBuffer, up to 64 MiB) in Orca's save dialog; the plugin never learns the path. Needs a click or key press in the frame; desktop app only.",
+    since: 1,
+    scope: 'desktop',
+    capability: null,
+    userActivation: true,
+    mutation: true,
+    surfaces: FRAMES_ONLY,
+    params: filesSaveAsParams,
+    result: filesSaveAsResult
+  }),
+  ...PLUGIN_PANEL_BRIDGE_API,
+  ...PLUGIN_WORKER_ACTIONS_API,
+  ...PLUGIN_EDITOR_TYPOGRAPHY_API
 }
 
-/** Actions sandboxed panels may request over the postMessage bridge. Derived
- *  from the spec table so the panel surface can never drift from the gate. */
-export const PLUGIN_PANEL_ACTIONS = PLUGIN_HOST_API_V0.filter((entry) => entry.panel).map(
-  (entry) => entry.name
+export type PluginHostApi = typeof PLUGIN_HOST_API
+export type PluginHostMethodName = keyof PluginHostApi
+/** What a plugin passes; what a handler receives is `z.output` of the same schema. */
+export type PluginHostParams<M extends PluginHostMethodName> = z.input<PluginHostApi[M]['params']>
+export type PluginHostResult<M extends PluginHostMethodName> = z.output<PluginHostApi[M]['result']>
+
+export const PLUGIN_HOST_METHOD_NAMES = Object.keys(PLUGIN_HOST_API).filter(isPluginHostMethodName)
+/** The frozen methods: what the minor, method lists, typings and reference count. */
+export const PLUGIN_STABLE_HOST_METHOD_NAMES = PLUGIN_HOST_METHOD_NAMES.filter((name) =>
+  pluginHostMethodOffered(PLUGIN_HOST_API[name], false)
 )
 
-export function isPluginPanelAction(action: string): boolean {
-  return PLUGIN_PANEL_ACTIONS.includes(action)
+export function isPluginHostMethodName(name: string): name is PluginHostMethodName {
+  return Object.hasOwn(PLUGIN_HOST_API, name)
+}
+
+export function getPluginHostMethodSpec(name: string): PluginHostMethodSpec | null {
+  return isPluginHostMethodName(name) ? PLUGIN_HOST_API[name] : null
+}
+
+/** The minor this host implements: the newest `since` or `paramsSince` among frozen methods. */
+export const PLUGIN_HOST_API_MINOR = Math.max(
+  ...PLUGIN_STABLE_HOST_METHOD_NAMES.map((name) =>
+    Math.max(PLUGIN_HOST_API[name].since, ...Object.values(PLUGIN_HOST_API[name].paramsSince ?? {}))
+  )
+)
+
+/** Methods a surface may call, for `hello` and `host.has`; proposed ones only when allowed. */
+export function pluginHostMethodsFor(surface: PluginSurface, allowProposed = false) {
+  return PLUGIN_HOST_METHOD_NAMES.filter((name) => {
+    const entry = PLUGIN_HOST_API[name]
+    return entry.surfaces.includes(surface) && pluginHostMethodOffered(entry, allowProposed)
+  })
+}
+
+/** A frame's methods: user-gesture methods only where Orca can verify the gesture (a guest). */
+export function pluginFrameMethodsFor(
+  surface: 'panel' | 'editor',
+  isolatedGuest: boolean
+): PluginHostMethodName[] {
+  return pluginHostMethodsFor(surface).filter(
+    (name) => isolatedGuest || PLUGIN_HOST_API[name].userActivation !== true
+  )
+}
+
+/** The minor a frame reports: the newest method it is actually offered, so iframes stay at 0. */
+export function pluginHostApiMinorFor(
+  methods: readonly PluginHostMethodName[],
+  surface: PluginSurface = 'panel'
+): number {
+  return Math.max(
+    0,
+    ...methods.map((name) => pluginHostMethodNewestMinorFor(PLUGIN_HOST_API[name], surface))
+  )
 }

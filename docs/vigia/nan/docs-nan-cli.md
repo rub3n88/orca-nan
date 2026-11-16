@@ -40,7 +40,7 @@ The CLI opens a panel with tabs you move through with the arrow keys:
 | Setup   | Your API key and the automatic setup of tools              |
 | About   | Version and links                                          |
 
-The **Usage** tab is the fastest way to know how much quota you have left before starting a long agent session.
+The **Usage** tab is the fastest way to check your usage before starting a long agent session.
 
 ## Installation
 
@@ -186,6 +186,22 @@ From v0.1.34, where your account has notifications, `nan notifications` manages 
 These commands use your `nan auth login` session first (it wins over `NAN_TOKEN`; `--token-file` wins over both), or a platform token with the scopes they need: `secrets:read` and `secrets:write` for secrets, `automations:write` (plus `automations:read` to use names) for automations; see [Tokens for automations](/docs/automations#tokens-for-automations). Sign in on your own machine, never inside a workspace: the agents there could read the session and change your secrets. Every command, the YAML files and the warnings are in [Manage them from the CLI or the API](/docs/automations#manage-them-from-the-cli-or-the-api).
 
 A run waiting for approval makes `nan run`, `nan runs logs -f` and `nan automations run` exit with code 10. The details are in [Automations](/docs/automations#from-the-terminal).
+
+## Contexts
+
+`nan context` keeps your [contexts](/docs/contexts) (instructions, skills and reference files for your runs) as folders on your machine, and pushes each change as a new version:
+
+```bash
+nan context create acme-api --from ./acme-context
+nan context push acme-api ./acme-context --dry-run
+nan context push acme-api ./acme-context
+nan context ls
+nan context pull acme-api ./acme-copy
+nan run --context acme-api "review PR 42"
+nan automations edit "PR review api" -f changes.yaml --context acme-api
+```
+
+`push` checks every file name and type before uploading anything, uploads only what changed and refuses text that looks like a credential unless you add `--allow-secrets`. `--context` on `nan run` and `nan automations create` / `edit` takes a name or an id, up to 5 times. These commands use your `nan auth login` session, or a platform token with `contexts:read` and `contexts:write`. Every command, flag and exit code is in [Contexts](/docs/contexts#from-the-cli).
 
 ## Updating
 

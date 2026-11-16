@@ -55,6 +55,16 @@ Fuente: `stablyai/orca` en GitHub (`src/shared/plugins/*`, `src/main/plugins/*`,
   créditos): otro campo del roster nativo, sin efecto para un plugin. Desde 2026-10-08 la doc cita
   saldos de crédito por proveedor (Claude, OpenCode Zen, Codex) junto a los límites: tampoco abre
   nada a plugins.
+- **Manifiesto v2** (en `main` desde 2026-10-29, sale con 1.4.245; el último release es 1.4.244):
+  `src/shared/plugins/` pasa a subcarpetas (`manifest/`, `capabilities/`, `workers/`, `frames/`…) y
+  las capacidades cambian de nombre: `storage` → `storage:own`, `secrets` → `secrets:own` y
+  `events:subscribe` se parte por dominio (`workspace:read` + `agent:read`); los eventos
+  `worktree.*` pasan a `workspace.*` (`agent.status.changed` sigue). Los manifiestos v1 siguen
+  cargando: `plugin-manifest-v1-names.ts` reescribe esos nombres al leerlos, así que el nuestro no
+  cambia. Pero la huella de consentimiento se calcula sobre los nombres nuevos y Orca dice que ligar
+  worker y panel «re-prompts every existing install once»: al actualizar Orca a 1.4.245 lo normal
+  es que pida **reconsentir** el plugin una vez. Pasar a v2 obligaría a `engines.orca >=1.4.245`:
+  no compensa mientras Orca siga en retirada en el hub.
 
 ### NaN
 
@@ -198,6 +208,10 @@ Fuente: `stablyai/orca` en GitHub (`src/shared/plugins/*`, `src/main/plugins/*`,
   las páginas `notifications` y `secrets`. Los eventos de notificación son solo de automatizaciones
   (`approval.pending`, `run.failed`…): ninguno de uso ni cuota, así que no sirven para el aviso del
   80 %. `models.go`, `session.json` y `/usage` sin cambios: sin efecto en el plugin.
+- **CLI oficial v0.1.35: 2FA en el login (2026-10-27)**: `nan auth login` y el panel piden TOTP o
+  código de recuperación si la cuenta tiene MFA; cloud-api añade `/api/auth/mfa*`,
+  `/api/admin/mfa/coverage` y `/api/account/contexts`. El login conserva `apiKey` en `session.json`
+  (lo único que leemos) y la cuota sigue con la API key: sin efecto en el plugin ni en `nan-usage`.
 - **Contrato nuevo de `reasoning_effort` (2026-10-16, 0.2.9)**: `/docs/models` §«Controlling
   reasoning» reescribe la tabla. Valores `none`·`minimal`·`low`·`medium`·`high`·`xhigh`·`max` (en
   Responses, `reasoning: {"effort": …}`); `none` apaga el razonamiento en todos menos GLM, que siempre
@@ -239,6 +253,20 @@ Fuente: `stablyai/orca` en GitHub (`src/shared/plugins/*`, `src/main/plugins/*`,
   tokens, no sirve para el aviso del 80 %), y Orca, `group`/`windowName` en `RateLimitBucket`
   (Antigravity), `ownerNotSetUp` solo del renderer en `rate-limit-types.ts` y `.prefault({})` en
   `contributes` del manifiesto (mismos valores por defecto, sin capacidades nuevas): sin efecto.
+- **Orca 1.4.246: puente panel ↔ worker y plugins fuera de «Experimental» (2026-11-02)**: el host
+  API 2 abre a paneles (`framesSince: 2`) `storage`, `secrets` y `settings`, añade `plugin.request`
+  (el panel llama a un handler del worker registrado con `orca.panels.handle`), `orca.panels.post`
+  (worker → panel), `agents.list`, `events.subscribe` y el evento `workspace.changed`; los workers
+  pueden ser `.ts`. Puente y módulos fuente desde 1.4.246 (release de hoy); capacidades nuevas
+  `workspace:write`, `agent:launch` y `terminal:read` y los hooks, desde 1.4.248 (sin publicar).
+  Sigue sin haber `net:fetch` ni API para el roster de la barra de estado. Desbloquea los puntos 1, 4
+  y 6 del roadmap (panel con datos vivos, settings y key desde el panel), pero no se adapta sin
+  decisión: opciones en `docs/vigia/informe-2026-11-02.md`. La doc de settings quita
+  «(Experimental)» a Plugins (sistema activo por defecto; los que ejecutan código «tienen acceso
+  completo a tu ordenador» una vez aprobados) y `vigia.sh` se adapta al título nuevo. NaN,
+  informativo: «contexts» (instrucciones, skills y ficheros para runs; `nan context …` y
+  `/v1/contexts*`), página `ephemeral-runs` y prepago de runs efímeros en cloud-api
+  (`/api/ephemeral/prepaid*`). Ningún endpoint de cuota por modelo: sin efecto en el plugin.
 - Toda la doc de NaN tiene versión markdown en `https://nan.builders/api/docs/<slug>.md`, y el índice
   con hash por página en `https://nan.builders/api/docs/manifest.json`: es la señal que vigila el
   vigía, más fiable que el repo `helmcode/nan` (que sigue vivo, pero es la fuente, no lo publicado).

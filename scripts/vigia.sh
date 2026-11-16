@@ -29,14 +29,17 @@ print(re.sub(r"\n\s*\n+","\n",t).strip())'; }
 # ---------------------------------------------------------------- Orca
 say "Orca: fuente del sistema de plugins (stablyai/orca @ main, ficheros raw)"
 ORCA_RAW=https://raw.githubusercontent.com/stablyai/orca/main
-for f in plugin-capabilities plugin-host-api plugin-manifest plugin-events plugin-host-protocol plugin-panel-shell plugin-content-pack-contributions; do
-  curl -sfL --max-time 20 "$ORCA_RAW/src/shared/plugins/$f.ts" -o "$TMP/orca-$f.ts" || echo "  (no pude bajar $f.ts)"
+# Desde 2026-10-29 (#35676 y vecinos) src/shared/plugins/ va por subcarpetas; el snapshot
+# conserva el nombre plano (orca/<fichero>.ts) para que el diff siga la historia.
+for f in capabilities/plugin-capabilities workers/plugin-host-api manifest/plugin-manifest events/plugin-events workers/plugin-host-protocol frames/plugin-panel-shell contributions/plugin-content-pack-contributions; do
+  curl -sfL --max-time 20 "$ORCA_RAW/src/shared/plugins/$f.ts" -o "$TMP/orca-${f#*/}.ts" || echo "  (no pude bajar $f.ts)"
 done
-curl -sfL --max-time 20 "$ORCA_RAW/src/shared/rate-limit-types.ts" -o "$TMP/orca-rate-limit-types.ts" || true
+# Desde 2026-11-16 (#42781) rate-limit-types.ts vive en src/shared/agent-usage/rate-limits/.
+curl -sfL --max-time 20 "$ORCA_RAW/src/shared/agent-usage/rate-limits/rate-limit-types.ts" -o "$TMP/orca-rate-limit-types.ts" || true
 git ls-remote https://github.com/stablyai/orca.git refs/heads/main 2>/dev/null | cut -c1-12 > "$TMP/orca-commit.txt"
 gh api repos/stablyai/orca/contents/examples/plugins --jq '.[].name' 2>/dev/null > "$TMP/orca-examples.txt" || true
 say "Orca: doc pública de plugins y versión instalada"
-curl -sL --max-time 20 https://www.onorca.dev/docs/settings | html2txt | sed -n '/Plugins (Experimental)/,/^Experimental$/p' > "$TMP/orca-docs-settings-plugins.txt" || true
+curl -sL --max-time 20 https://www.onorca.dev/docs/settings | html2txt | sed -n '/^Plugins\( (Experimental)\)\{0,1\}$/,/^Experimental$/{p;/^Experimental$/q;}' > "$TMP/orca-docs-settings-plugins.txt" || true
 curl -sL --max-time 20 https://www.onorca.dev/docs/agents/usage-tracking | html2txt | sed -n '/^Usage & rate-limit tracking$/,/← Previous/p' > "$TMP/orca-docs-usage-tracking.txt" || true
 defaults read /Applications/Orca.app/Contents/Info.plist CFBundleShortVersionString 2>/dev/null > "$TMP/orca-installed-version.txt" || echo "?" > "$TMP/orca-installed-version.txt"
 

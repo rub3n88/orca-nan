@@ -1,114 +1,108 @@
 import { z } from 'zod'
-import { PLUGIN_COMMAND_LIMIT, PLUGIN_EVENT_NAMES, pluginCommandIdSchema } from './plugin-manifest'
-import { PLUGIN_CAPABILITY_KINDS } from './plugin-capabilities'
+import {
+  PLUGIN_COMMAND_LIMIT,
+  PLUGIN_EVENT_NAMES,
+  pluginCommandIdSchema
+} from '../manifest/plugin-manifest'
+import { PLUGIN_CAPABILITY_KINDS } from '../capabilities/plugin-capabilities'
+import { pluginEvent, type PluginEvent } from '../frames/plugin-protocol'
+import { pluginWorkerPanelPostSchema } from './plugin-panel-bridge-protocol'
 
 /**
- * Message protocol between the Orca process and the out-of-process plugin
- * worker (child_process.fork channel). Zod-validated on both sides because
- * the child runs third-party code — nothing it sends is trusted structurally.
+ * The worker fork channel, on the shared envelope (plugin-protocol.ts). Validate both sides:
+ * third-party worker code cannot supply trusted structure. Host calls are the worker's `req`s;
+ * the methods and events below are the host's lifecycle traffic.
  */
 
+export const WORKER_EVENTS = {
+  /** host → worker, {@link PluginWorkerInit}. */
+  init: 'init',
+  /** worker → host, `{ commands }` registered on activate. */
+  ready: 'ready',
+  log: 'log',
+  fatal: 'fatal',
+  shutdown: 'shutdown',
+  /** worker → host, {@link PluginWorkerPanelPost}: `orca.panels.post`. */
+  panelPost: 'panel.post',
+  /** host → worker, {@link PluginDataChanged}: a panel or the person changed storage or settings. */
+  dataChanged: 'data.changed'
+} as const
+
+/** host → worker requests; the worker answers each with a `res`. */
+export const WORKER_METHODS = {
+  invokeCommand: 'command.invoke',
+  deliverEvent: 'event.deliver',
+  /** A panel's `plugin.request`, answered by the handler from `orca.panels.handle`. */
+  panelRequest: 'panel.request',
+  /** One hook, answered with a decision (plugin-worker-hooks.ts). */
+  runHook: 'hook.run'
+} as const
+
 export const pluginWorkerInitSchema = z.object({
-  type: z.literal('init'),
   /** Qualified `<publisher>.<id>` key. */
   pluginId: z.string().min(1),
   pluginRoot: z.string().min(1),
   mainEntry: z.string().min(1),
-  /** Consented capability kinds, so the in-worker SDK can fail fast client-
-   *  side; the host re-gates every call regardless. */
-  grantedCapabilities: z.array(z.enum(PLUGIN_CAPABILITY_KINDS))
+  /** Worker-side early refusals only; host rechecks every call regardless of declared grants. */
+  grantedCapabilities: z.array(z.enum(PLUGIN_CAPABILITY_KINDS)),
+  /** A development plugin: `host.has` also answers for proposed methods. */
+  allowProposed: z.boolean().optional()
 })
 
-export const pluginWorkerInvokeCommandSchema = z.object({
-  type: z.literal('invokeCommand'),
-  callId: z.number().int().nonnegative(),
+export const pluginWorkerInvokeParamsSchema = z.object({
   commandId: z.string().min(1),
   args: z.unknown().optional()
 })
 
-export const pluginWorkerDeliverEventSchema = z.object({
-  type: z.literal('deliverEvent'),
-  eventId: z.number().int().nonnegative(),
+export const pluginWorkerDeliverParamsSchema = z.object({
   event: z.enum(PLUGIN_EVENT_NAMES),
   payload: z.unknown()
 })
 
-export const pluginWorkerHostResultSchema = z.object({
-  type: z.literal('hostResult'),
-  callId: z.number().int().nonnegative(),
-  ok: z.boolean(),
-  value: z.unknown().optional(),
-  errorCode: z.string().optional(),
-  error: z.string().optional()
-})
-
-export const pluginWorkerShutdownSchema = z.object({ type: z.literal('shutdown') })
-
-export const pluginWorkerParentMessageSchema = z.discriminatedUnion('type', [
-  pluginWorkerInitSchema,
-  pluginWorkerInvokeCommandSchema,
-  pluginWorkerDeliverEventSchema,
-  pluginWorkerHostResultSchema,
-  pluginWorkerShutdownSchema
-])
-
 export const pluginWorkerReadySchema = z.object({
-  type: z.literal('ready'),
   /** Command ids the worker registered handlers for (⊆ manifest commands). */
   commands: z.array(pluginCommandIdSchema).max(PLUGIN_COMMAND_LIMIT)
 })
 
-export const pluginWorkerCommandResultSchema = z.object({
-  type: z.literal('commandResult'),
-  callId: z.number().int().nonnegative(),
-  ok: z.boolean(),
-  // Why: value crosses a fork() IPC boundary, so it is structured-clone data
-  // by construction; zod treats it as opaque and callers re-validate shape.
-  value: z.unknown().optional(),
-  error: z.string().max(8192).optional()
-})
-
-export const pluginWorkerEventAckSchema = z.object({
-  type: z.literal('eventAck'),
-  eventId: z.number().int().nonnegative()
-})
-
-/** Worker→host API call (the plugin SDK's transport for host methods). */
-export const pluginWorkerHostCallSchema = z.object({
-  type: z.literal('hostCall'),
-  callId: z.number().int().nonnegative(),
-  method: z.string().min(1),
-  params: z.unknown().optional()
-})
-
 export const pluginWorkerLogSchema = z.object({
-  type: z.literal('log'),
   level: z.enum(['info', 'warn', 'error']),
   message: z.string().max(8192)
 })
 
-export const pluginWorkerFatalSchema = z.object({
-  type: z.literal('fatal'),
-  error: z.string().max(8192)
-})
+export const pluginWorkerFatalSchema = z.object({ error: z.string().max(8192) })
 
-export const pluginWorkerChildMessageSchema = z.discriminatedUnion('type', [
-  pluginWorkerReadySchema,
-  pluginWorkerCommandResultSchema,
-  pluginWorkerEventAckSchema,
-  pluginWorkerHostCallSchema,
-  pluginWorkerLogSchema,
-  pluginWorkerFatalSchema
+export type PluginWorkerInit = z.infer<typeof pluginWorkerInitSchema>
+
+const pluginWorkerChildEventSchema = z.discriminatedUnion('event', [
+  z.object({ event: z.literal(WORKER_EVENTS.ready), payload: pluginWorkerReadySchema }),
+  z.object({ event: z.literal(WORKER_EVENTS.log), payload: pluginWorkerLogSchema }),
+  z.object({ event: z.literal(WORKER_EVENTS.fatal), payload: pluginWorkerFatalSchema }),
+  z.object({ event: z.literal(WORKER_EVENTS.panelPost), payload: pluginWorkerPanelPostSchema })
 ])
 
-export type PluginWorkerParentMessage = z.infer<typeof pluginWorkerParentMessageSchema>
-export type PluginWorkerChildMessage = z.infer<typeof pluginWorkerChildMessageSchema>
-export type PluginWorkerInit = z.infer<typeof pluginWorkerInitSchema>
+/** A worker → host lifecycle event, or null for anything else. */
+export function readPluginWorkerEvent(
+  message: PluginEvent
+): z.infer<typeof pluginWorkerChildEventSchema> | null {
+  const parsed = pluginWorkerChildEventSchema.safeParse(message)
+  return parsed.success ? parsed.data : null
+}
+
+export function pluginWorkerLog(level: 'info' | 'warn' | 'error', message: string): PluginEvent {
+  return pluginEvent(WORKER_EVENTS.log, { level, message: message.slice(0, 8192) })
+}
+
+export function pluginWorkerFatal(error: string): PluginEvent {
+  return pluginEvent(WORKER_EVENTS.fatal, { error: error.slice(0, 8192) })
+}
 
 export const PLUGIN_WORKER_READY_TIMEOUT_MS = 10_000
 export const PLUGIN_WORKER_INVOKE_TIMEOUT_MS = 30_000
-/** Idle reap: a worker with no in-flight work for this long is disposed and
- *  re-forked on the next trigger. */
+/** Dispose idle workers and refork on their next trigger. */
 export const PLUGIN_WORKER_IDLE_REAP_MS = 5 * 60_000
+/** How often the main process sweeps for idle workers. */
+export const PLUGIN_WORKER_REAP_INTERVAL_MS = 60_000
 /** Default cap on concurrently-active workers; excess activations queue. */
 export const PLUGIN_WORKER_MAX_ACTIVE_DEFAULT = 5
+/** Soft cap on always-running hook workers, which hold no slot of the cap above. */
+export const PLUGIN_WORKER_MAX_KEEP_WARM_DEFAULT = 16
