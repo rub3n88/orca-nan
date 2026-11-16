@@ -104,8 +104,9 @@ const pct = (used, cap) => (cap > 0 ? used / cap : 0)
 const daysLeft = (iso) => Math.max(0, Math.ceil((new Date(iso).getTime() - Date.now()) / 86_400_000))
 
 function quotaLines(quota) {
-  // El premium (glm5.3; antes glm5.2) lleva ventana rodante de 4h además de la
-  // cuota por periodo: se enseña siempre, es lo que un agente de código se come primero.
+  // Hasta el 2026-11-15 el premium (glm5.3; antes glm5.2) llevaba ventana rodante de 4h además
+  // de la cuota por periodo y se enseñaba siempre; desde el 16 /usage/quota ya no trae
+  // windowHours y solo salen los modelos con consumo. Se sigue leyendo por si vuelve.
   // cap 0 = modelo retirado (mimo-v2.5 desde 2026-09-30): fuera, no hay cuota que vigilar.
   return quota.models
     .filter((m) => m.cap > 0 && (m.tokensUsed > 0 || m.windowHours))

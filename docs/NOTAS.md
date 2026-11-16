@@ -289,6 +289,15 @@ Fuente: `stablyai/orca` en GitHub (`src/shared/plugins/*`, `src/main/plugins/*`,
   «Hand the model a video»: ningún modelo de chat acepta vídeo (extraer fotogramas y mandarlos como
   imágenes); `deepseek-v4-pro` tampoco lee imágenes. `MODEL_NOTES` de `glm5.3` pasa a `["text"]`
   (deshace lo de 0.2.6), con lo que `config opencode` deja de anunciarle imagen/audio/vídeo.
+- **`glm5.3` sin ventana rodante de 4h (2026-11-16, en 0.2.11)**: `/docs/models`, `choose-a-model` y
+  `getting-started` quitan los 400M tokens por 4h de `glm5.3`; el `429` pasa a ser solo «demasiadas
+  peticiones». `/api/usage/quota` deja de traer `windowHours` y `fullWindowTokens` (ni en `glm5.3` ni
+  en `glm5.2`). En su lugar, cada modelo de chat tiene un tope de tokens/min (contexto × llenados por
+  minuto): 11,5M en `glm5.3` y `glm5.3-flash`, 6,29M en `deepseek-v4-flash`, `qwen3.8-flash`,
+  `kimi-k3.1-pro` y `deepseek-v4-pro`, 6M en `qwen3.8-max` y `hy4`, 4,2M en `mimo-v2.6-flash`,
+  3,14M en `qwen3.6` y 1,04M en `gemma4`. El código ya leía la ventana como opcional: `quota` y el
+  panel dejan de enseñarla solos y `glm5.3` solo sale en el resumen del plugin si tiene consumo. Nota
+  de `MODEL_NOTES`, README y el punto 2 del roadmap, al día.
 
 ## Decisiones
 
@@ -315,8 +324,8 @@ Fuente: `stablyai/orca` en GitHub (`src/shared/plugins/*`, `src/main/plugins/*`,
 ### Plugin (aquí)
 
 1. Umbral y cooldown configurables vía `settings:own` cuando Orca tenga UI de settings de plugin.
-2. Ventana 4h de glm5.3 (antes glm5.2): hoy mostramos la cuota del periodo; el consumo de la ventana no viene en la API.
-   Pedirlo a NaN o derivarlo de `timeSeries` (las filas de `/v1/usage` son diarias: no sirven para 4h).
+2. ~~Ventana 4h de glm5.3~~: NaN la retira el 2026-11-16 (`/api/usage/quota` sin `windowHours` ni
+   `fullWindowTokens`); queda solo el tope de tokens/min, que no viene en la API. Sin trabajo pendiente.
 3. Aviso de renovación de periodo (`billing.currentPeriodEnd` a ≤ 2 días) en el mismo check
    (bloqueado: `/api/billing` pide sesión desde 2026-10-08).
 4. `secrets` en vez de fichero cuando exista una vía de entrada (settings UI o comando con args).

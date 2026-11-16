@@ -32,7 +32,7 @@ https://nan.builders/install | bash`). No compiten: hacen cosas distintas.
 | Interfaz | TUI (Profile · Usage · Models · Costs · Setup · About) | subcomandos de una línea, `--json` |
 | Configurar herramientas | **Setup** escribe la config de OpenCode, Codex, Pi, droid y Hermes | snippets para pegar (`config env|opencode|pi|cursor|zed`) |
 | Consumo | `nan metrics usage` (JSON), `nan me` | `usage`, `billing` |
-| Cuota **por modelo** con reset y ventana 4h | no | `quota` |
+| Cuota **por modelo** con reset | no | `quota` |
 | Latencia y modelo que responde de verdad | no | `ping` |
 | Una línea para el prompt / statusline | no | `status` |
 | Orca | no | panel, ⌘J, aviso al 80 % |
@@ -64,7 +64,7 @@ periodo desde 2026-09-01
   glm5.3-flash         ███████░░░░░░░░░░░░░  33.7%   674.4M / 2.00B  reset 14d
   deepseek-v4-flash    ██████░░░░░░░░░░░░░░  29.2%   874.8M / 3.00B  reset 14d
   qwen3.8-flash        █░░░░░░░░░░░░░░░░░░░   6.8%    34.0M / 500.0M reset 14d
-  glm5.3               ░░░░░░░░░░░░░░░░░░░░   0.0%        0 / 3.00B  reset 18d  ventana 4h: 400.0M
+  glm5.3               ░░░░░░░░░░░░░░░░░░░░   0.0%        0 / 3.00B  reset 18d
 
 $ nan-usage ping
   qwen3.8-flash        ok    1.10s primer token
@@ -86,7 +86,7 @@ conversación da 400; ningún modelo de chat acepta vídeo.
 peticiones por día UTC y modelo, más el total histórico. Si falla, cae a la ruta no documentada de
 cloud-api (`/api/metrics/usage`, 24h rodantes) y lo dice; `nan-usage usage cloud` la fuerza (desde el
 2026-10-08 esa ruta pide sesión del panel, así que el respaldo ya no responde con API key). La
-**cuota** (cap, restante, reset, ventana 4h) no está en la API oficial: `quota`, `status` y el aviso
+**cuota** (cap, restante, reset) no está en la API oficial: `quota`, `status` y el aviso
 del 80 % siguen leyendo cloud-api. Si has comprado un paquete de tokens extra para un modelo (se
 gasta al llegar al cap), `quota`, `nan-quota` y el aviso lo enseñan como `+N extra`, con «pausado»
 cuando NaN no deja usarlo (sin membresía activa o sin premium).
