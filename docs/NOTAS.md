@@ -236,6 +236,23 @@ Fuente: `stablyai/orca` en GitHub (`src/shared/plugins/*`, `src/main/plugins/*`,
   `api.nan.builders` en `/chat/completions` sin stream ni tools (se valida contra el esquema y, si no
   cuadra, suele re-servirse con otro proveedor; no garantizado); con stream, tools, `/responses`,
   `n` > 1 o esquemas de más de 16 KB sigue el 400. Va en la nota de `MODEL_NOTES`.
+- **Presupuesto de salida tal cual y `thinking_budget` (2026-10-19, 0.2.11)**: `/docs/models` quita el
+  suelo de 16.384 de `deepseek-v4-flash` con reasoning: `max_tokens`, `max_completion_tokens` y
+  `max_output_tokens` se usan tal cual en todos los modelos (tope 393.216 en `deepseek-v4-flash` y
+  131.072 en `glm5.3-flash`) y el razonamiento gasta de ese presupuesto. Si se agota razonando, Chat
+  Completions devuelve `content` vacío, `finish_reason: "length"` y `reasoning_tokens` igual a
+  `completion_tokens` (sin stream, también la cabecera `x-nan-truncated-in-reasoning: true`);
+  Responses, `status: "incomplete"`. Desaparece el «`max_tokens` ≥ 300» de `mimo-v2.6-flash`. Nuevo
+  `thinking_budget` / `thinking_token_budget` (1–32.768, tope duro; 0 apaga) en `qwen3.6`, `gemma4` y
+  `qwen3.8-flash`, solo en Chat Completions y sin mezclarlo con `reasoning_effort`. 0.2.11 lo lleva a
+  `MODEL_NOTES`. El ping de `status`/`nan-check` (`max_tokens: 8`, stream) solo mide el primer chunk,
+  así que no le afecta. `getting-started`: la API key requiere `nan_member` (70 €/mes) o premium
+  (200 €/mes); el plan Community de 14,99 € no tiene. Informativo: cloud-api añade
+  `/api/billing/payment-method` y `/api/ephemeral/settings`·`/usage` (runs efímeros de las
+  automatizaciones: minutos y € por tamaño de contenedor, tras `features.ephemeral`; no es cuota de
+  tokens, no sirve para el aviso del 80 %), y Orca, `group`/`windowName` en `RateLimitBucket`
+  (Antigravity), `ownerNotSetUp` solo del renderer en `rate-limit-types.ts` y `.prefault({})` en
+  `contributes` del manifiesto (mismos valores por defecto, sin capacidades nuevas): sin efecto.
 - **Orca 1.4.246: puente panel ↔ worker y plugins fuera de «Experimental» (2026-11-02)**: el host
   API 2 abre a paneles (`framesSince: 2`) `storage`, `secrets` y `settings`, añade `plugin.request`
   (el panel llama a un handler del worker registrado con `orca.panels.handle`), `orca.panels.post`
@@ -253,6 +270,34 @@ Fuente: `stablyai/orca` en GitHub (`src/shared/plugins/*`, `src/main/plugins/*`,
 - Toda la doc de NaN tiene versión markdown en `https://nan.builders/api/docs/<slug>.md`, y el índice
   con hash por página en `https://nan.builders/api/docs/manifest.json`: es la señal que vigila el
   vigía, más fiable que el repo `helmcode/nan` (que sigue vivo, pero es la fuente, no lo publicado).
+- **`json_schema` de deepseek, 400 en las dos pasarelas (2026-10-29, en 0.2.11)**: la doc de modelos
+  deja de aceptar en `api.helmcode.com` los `json_schema` con stream, tools, `/responses`… que ya
+  rechazaba `api.nan.builders` («a paid fallback would hide it from you»). La nota de
+  `deepseek-v4-flash` en `MODEL_NOTES` lo dice. Informativo: embeddings, Kokoro y Whisper pasan a
+  GPU (sin RPM publicados; Whisper con timeout de 180 s en vez de ~2 min de audio).
+- **`json_schema` de deepseek también con stream (2026-11-01, en 0.2.11)**: la doc de modelos acepta
+  ya `json_schema` en `/chat/completions` sin tools aunque vaya en streaming, en las dos pasarelas: el
+  stream se bufferiza, se valida contra el esquema y se reemite como SSE. Siguen en 400 tools,
+  `/responses` y esquemas no válidos o de más de 16 KB; `n` > 1 lo reduce a 1 `api.nan.builders` y lo
+  rechaza `api.helmcode.com`. La nota de `deepseek-v4-flash` en `MODEL_NOTES`, al día. Orca (main,
+  sin release instalada en el hub): `publisher` deprecado en v2 (se deriva del dueño del repo; el
+  nuestro, `rub3n88`, ya coincide), textos visibles saneados, `shell.openExternal`/`files.saveAs`
+  solo en frames con gesto del usuario y `secrets.protection`: sin efecto.
+- **`glm5.3` vuelve a solo texto (2026-11-14, en 0.2.11)**: `/docs/models` y `choose-a-model`
+  pasan `glm5.3` de texto · imagen · audio · vídeo a «Text only»: una petición con imagen, audio,
+  vídeo o fichero (también en turnos anteriores de la conversación) responde 400. Fuera la fila
+  «Hand the model a video»: ningún modelo de chat acepta vídeo (extraer fotogramas y mandarlos como
+  imágenes); `deepseek-v4-pro` tampoco lee imágenes. `MODEL_NOTES` de `glm5.3` pasa a `["text"]`
+  (deshace lo de 0.2.6), con lo que `config opencode` deja de anunciarle imagen/audio/vídeo.
+- **`glm5.3` sin ventana rodante de 4h (2026-11-16, en 0.2.11)**: `/docs/models`, `choose-a-model` y
+  `getting-started` quitan los 400M tokens por 4h de `glm5.3`; el `429` pasa a ser solo «demasiadas
+  peticiones». `/api/usage/quota` deja de traer `windowHours` y `fullWindowTokens` (ni en `glm5.3` ni
+  en `glm5.2`). En su lugar, cada modelo de chat tiene un tope de tokens/min (contexto × llenados por
+  minuto): 11,5M en `glm5.3` y `glm5.3-flash`, 6,29M en `deepseek-v4-flash`, `qwen3.8-flash`,
+  `kimi-k3.1-pro` y `deepseek-v4-pro`, 6M en `qwen3.8-max` y `hy4`, 4,2M en `mimo-v2.6-flash`,
+  3,14M en `qwen3.6` y 1,04M en `gemma4`. El código ya leía la ventana como opcional: `quota` y el
+  panel dejan de enseñarla solos y `glm5.3` solo sale en el resumen del plugin si tiene consumo. Nota
+  de `MODEL_NOTES`, README y el punto 2 del roadmap, al día.
 
 ## Decisiones
 
@@ -279,8 +324,8 @@ Fuente: `stablyai/orca` en GitHub (`src/shared/plugins/*`, `src/main/plugins/*`,
 ### Plugin (aquí)
 
 1. Umbral y cooldown configurables vía `settings:own` cuando Orca tenga UI de settings de plugin.
-2. Ventana 4h de glm5.3 (antes glm5.2): hoy mostramos la cuota del periodo; el consumo de la ventana no viene en la API.
-   Pedirlo a NaN o derivarlo de `timeSeries` (las filas de `/v1/usage` son diarias: no sirven para 4h).
+2. ~~Ventana 4h de glm5.3~~: NaN la retira el 2026-11-16 (`/api/usage/quota` sin `windowHours` ni
+   `fullWindowTokens`); queda solo el tope de tokens/min, que no viene en la API. Sin trabajo pendiente.
 3. Aviso de renovación de periodo (`billing.currentPeriodEnd` a ≤ 2 días) en el mismo check
    (bloqueado: `/api/billing` pide sesión desde 2026-10-08).
 4. `secrets` en vez de fichero cuando exista una vía de entrada (settings UI o comando con args).

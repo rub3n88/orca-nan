@@ -14,7 +14,8 @@ Tu suscripción de [NaN](https://nan.builders) —cuotas, consumo, modelos, salu
 
 ## Requisitos
 
-- Suscripción de NaN con API key (tier *inference*).
+- Suscripción de NaN con API key (tier *inference*): `nan_member` (70 €/mes) o premium de GLM 5.3
+  (200 €/mes). El plan NaN Community (14,99 €/mes) no ejecuta modelos, así que no tiene API key.
 - La key en cualquiera de estos sitios (se buscan en este orden): `$NAN_API_KEY`,
   `~/.config/nan/api-key` (`chmod 600`), `~/.config/nan/env` (línea `NAN_API_KEY=…`) o el
   `~/.config/nan/session.json` que deja el CLI oficial de NaN tras `nan auth login`. Si ya usas el
@@ -31,7 +32,7 @@ https://nan.builders/install | bash`). No compiten: hacen cosas distintas.
 | Interfaz | TUI (Profile · Usage · Models · Costs · Setup · About) | subcomandos de una línea, `--json` |
 | Configurar herramientas | **Setup** escribe la config de OpenCode, Codex, Pi, droid y Hermes | snippets para pegar (`config env|opencode|pi|cursor|zed`) |
 | Consumo | `nan metrics usage` (JSON), `nan me` | `usage`, `billing` |
-| Cuota **por modelo** con reset y ventana 4h | no | `quota` |
+| Cuota **por modelo** con reset | no | `quota` |
 | Latencia y modelo que responde de verdad | no | `ping` |
 | Una línea para el prompt / statusline | no | `status` |
 | Orca | no | panel, ⌘J, aviso al 80 % |
@@ -63,7 +64,7 @@ periodo desde 2026-09-01
   glm5.3-flash         ███████░░░░░░░░░░░░░  33.7%   674.4M / 2.00B  reset 14d
   deepseek-v4-flash    ██████░░░░░░░░░░░░░░  29.2%   874.8M / 3.00B  reset 14d
   qwen3.8-flash        █░░░░░░░░░░░░░░░░░░░   6.8%    34.0M / 500.0M reset 14d
-  glm5.3               ░░░░░░░░░░░░░░░░░░░░   0.0%        0 / 3.00B  reset 18d  ventana 4h: 400.0M
+  glm5.3               ░░░░░░░░░░░░░░░░░░░░   0.0%        0 / 3.00B  reset 18d
 
 $ nan-usage ping
   qwen3.8-flash        ok    1.10s primer token
@@ -77,14 +78,15 @@ recuerda que el CLI oficial ya configura OpenCode/Codex/Pi/droid/Hermes por sí 
 `config pi`: si usas `@gtrabanco/pi-nan-provider`, el bloque `providers.nan` lo genera la extensión
 (o pi-fleet) con los `compat` que necesita; ni este snippet ni el Setup del oficial —que reemplaza
 `providers.nan` entero— deben pisarlo. Pi solo admite `text` e `image` en `input` (con otro valor rechaza el
-fichero entero), así que `config pi` deja fuera el audio de `mimo-v2.6-flash` y el audio y vídeo de
-`glm5.3`; `config opencode` sí los lleva.
+fichero entero), así que `config pi` deja fuera el audio de `mimo-v2.6-flash`; `config opencode` sí lo lleva.
+`glm5.3` es solo texto (desde el 2026-11-14): una imagen, un audio o un vídeo en cualquier turno de la
+conversación da 400; ningún modelo de chat acepta vídeo.
 
 `usage` lee el endpoint **oficial** `GET /v1/usage` de NaN (desde el 2026-09-26): tokens y
 peticiones por día UTC y modelo, más el total histórico. Si falla, cae a la ruta no documentada de
 cloud-api (`/api/metrics/usage`, 24h rodantes) y lo dice; `nan-usage usage cloud` la fuerza (desde el
 2026-10-08 esa ruta pide sesión del panel, así que el respaldo ya no responde con API key). La
-**cuota** (cap, restante, reset, ventana 4h) no está en la API oficial: `quota`, `status` y el aviso
+**cuota** (cap, restante, reset) no está en la API oficial: `quota`, `status` y el aviso
 del 80 % siguen leyendo cloud-api. Si has comprado un paquete de tokens extra para un modelo (se
 gasta al llegar al cap), `quota`, `nan-quota` y el aviso lo enseñan como `+N extra`, con «pausado»
 cuando NaN no deja usarlo (sin membresía activa o sin premium).
@@ -103,7 +105,10 @@ La línea `reasoning_effort` de cada modelo sale de la doc de NaN (2026-10-16): 
 tokens. `mimo-v2.5` se retiró el 2026-09-30: ya
 no se sirve y `/usage/quota` lo deja con cap 0, así que `quota` lo marca «retirado (cap 0)» y el
 plugin no lo cuenta. Un valor fuera de esa lista puede dar 400. La traza llega en
-`message.reasoning_content`, aparte de la respuesta.
+`message.reasoning_content`, aparte de la respuesta. Desde el 2026-10-19 el razonamiento gasta del
+mismo `max_tokens`, que se usa tal cual (ya no hay suelo de 16K en `deepseek-v4-flash`): con poco
+presupuesto la respuesta llega vacía con `finish_reason: "length"`. En `qwen3.6`, `gemma4` y
+`qwen3.8-flash`, `thinking_budget` (1–32.768) topa el razonamiento en Chat Completions.
 
 ## NaN Usage — el plugin de Orca
 
