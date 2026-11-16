@@ -6,7 +6,7 @@ see [Choose your model](/docs/choose-a-model#what-the-billing-column-means).
 
 ### glm5.3 - 753B MoE
 
-\~753B parameter MoE model, focused on coding and long-horizon agentic tasks. 1M token context. Text only: text in, text out, with no image, audio, video or file input; a request carrying one answers 400, earlier turns of the conversation included, so start a new session or switch to a model that takes images. Tool calling and reasoning (emits a reasoning trace). Paid from your credits, and one of the larger models: it costs more per token than the flash models, so it uses credits faster. Also capped at 400M tokens per rolling 4h window, which is the limit a heavy coding-agent run reaches first.
+\~753B parameter MoE model, focused on coding and long-horizon agentic tasks. 1M token context. Text only: text in, text out, with no image, audio, video or file input; a request carrying one answers 400, earlier turns of the conversation included, so start a new session or switch to a model that takes images. Tool calling and reasoning (emits a reasoning trace). Paid from your credits, and one of the larger models: it costs more per token than the flash models, so it uses credits faster.
 
 **text generation & chat · agentic coding**
 
@@ -17,7 +17,6 @@ see [Choose your model](/docs/choose-a-model#what-the-billing-column-means).
 - Input modalities: text
 - Output modalities: text
 - Billing: credits · larger model
-- Rolling 4h window: 400M tokens
 
 **capabilities**
 
@@ -604,20 +603,25 @@ The limit exists to bound a known failure mode of thinking models: they occasion
 
 Audio, embedding and rerank endpoints have no concurrency limit.
 
-**glm5.3 · rolling window limits**
+**glm5.3 · limits**
 
-- Rolling 4h window: 400M tokens
 - Context window: 1M tokens
 - Concurrent requests: 7 (base plan) · 10 (premium plan)
-
-400M tokens per rolling 4 hours is the limit a heavy coding-agent run reaches first. Once you hit it, glm5.3 requests are rejected until the window slides forward: it is a rolling window, not a daily reset. It is separate from your credits: credits pay for the tokens, the window bounds how fast you can spend them on glm5.3.
+- Tokens per minute: 11.5M tpm
 
 **tokens / min per model**
 
-- deepseek-v4-flash: 1.5M tpm
-- mimo-v2.6-flash: 1.5M tpm
-- qwen3.6: 1.5M tpm
-- gemma4: 1.5M tpm
+- glm5.3: 11.5M tpm
+- glm5.3-flash: 11.5M tpm
+- deepseek-v4-flash: 6.29M tpm
+- qwen3.8-flash: 6.29M tpm
+- kimi-k3.1-pro: 6.29M tpm
+- deepseek-v4-pro: 6.29M tpm
+- qwen3.8-max: 6M tpm
+- hy4: 6M tpm
+- mimo-v2.6-flash: 4.2M tpm
+- qwen3.6: 3.14M tpm
+- gemma4: 1.04M tpm
 
 **requests / min per model**
 

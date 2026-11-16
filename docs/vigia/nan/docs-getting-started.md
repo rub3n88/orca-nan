@@ -121,14 +121,14 @@ If you use OpenCode, Codex, Pi or droid, the [NaN CLI](/docs/nan-cli) configures
 
 Every error arrives in the same shape as OpenAI's: a JSON with `error.message`, `error.type` and a short `error.code` you can branch on in your code.
 
-| Code  | What happened                                                                                                                | What to do                                                                                                                                                       |
-| ----- | ---------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `401` | The key is missing, misspelled or gone, **or it does not reach that model**                                                  | Check the `Authorization: Bearer ...` header. If the key works on other models, that model is not in your plan                                                   |
-| `402` | You are out of credits: your plan's credits for this billing period and your credit packs are spent (`insufficient_balance`) | Buy a [credit pack](https://cloud.nan.builders/dashboard?buy=credits), or wait for your next billing period                                                      |
-| `403` | Your plan does not reach that endpoint                                                                                       | Image generation needs inference membership                                                                                                                      |
-| `404` | That model id does not exist                                                                                                 | Check the spelling in [Choose your model](/docs/choose-a-model) or with `GET /v1/models`                                                                         |
-| `429` | Too many requests at once, or the `glm5.3` rolling window is full                                                            | Retry, waiting a little longer each time. If it is the `glm5.3` window, waiting seconds does not help: wait for the window to slide, or switch to `glm5.3-flash` |
-| `5xx` | The failure is ours                                                                                                          | Retry; if it persists, say so in `#support`                                                                                                                      |
+| Code  | What happened                                                                                                                | What to do                                                                                                     |
+| ----- | ---------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------- |
+| `401` | The key is missing, misspelled or gone, **or it does not reach that model**                                                  | Check the `Authorization: Bearer ...` header. If the key works on other models, that model is not in your plan |
+| `402` | You are out of credits: your plan's credits for this billing period and your credit packs are spent (`insufficient_balance`) | Buy a [credit pack](https://cloud.nan.builders/dashboard?buy=credits), or wait for your next billing period    |
+| `403` | Your plan does not reach that endpoint                                                                                       | Image generation needs inference membership                                                                    |
+| `404` | That model id does not exist                                                                                                 | Check the spelling in [Choose your model](/docs/choose-a-model) or with `GET /v1/models`                       |
+| `429` | Too many requests at once                                                                                                    | Retry, waiting a little longer each time                                                                       |
+| `5xx` | The failure is ours                                                                                                          | Retry; if it persists, say so in `#support`                                                                    |
 
 Retrying only makes sense for `429` and for `5xx`. A `401`, a `403` or a `404` will fail in exactly the same way until you change the request, and a `402` is not fixed by insisting: your plan's credits come back in full when your Stripe billing period starts, which is almost never the 1st, and a credit pack works right away. On the Gentle plan, which keeps a quota per model, the `402` is `monthly_cap_reached` and that model's counter also resets when your billing period starts.
 
@@ -138,9 +138,9 @@ The full detail, endpoint by endpoint, is in the [API reference](/docs/api).
 
 Two limits are per API key and apply to everything you call: requests per minute, and requests at once.
 
-On top of those, some models carry one of their own: a tokens-per-minute ceiling on the big chat models, and a requests-per-minute one on `rerank`. `glm5.3` is not gated per minute at all, but by a rolling token window. Credits are not a limit of this kind: they are what the tokens are paid with. Image endpoints run on a budget separate from the models', and do not draw credits.
+On top of those, every chat model carries a tokens-per-minute limit of its own, its context window times a fixed number of fills per minute: from 1.04M tokens a minute on `gemma4` up to 11.5M on `glm5.3` and `glm5.3-flash`. `rerank` carries a requests-per-minute one instead. Credits are not a limit of this kind: they are what the tokens are paid with. Image endpoints run on a budget separate from the models', and do not draw credits.
 
-The current figures are at the end of [Models](/docs/models), which is where they are published so that no two versions of the same number go around.
+Every figure, model by model, is at the end of [Models](/docs/models).
 
 ## Usage metrics
 

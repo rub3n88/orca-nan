@@ -1,11 +1,9 @@
 .models[].cap int
 .models[].extraTokens int
 .models[].extraUsable bool
-.models[].fullWindowTokens int
 .models[].model str
 .models[].periodEnd str
 .models[].remaining int
 .models[].tokensUsed int
 .models[].updatedAt str
-.models[].windowHours int
 .periodStart str

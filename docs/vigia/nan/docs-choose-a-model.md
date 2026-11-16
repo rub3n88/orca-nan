@@ -74,7 +74,7 @@ The full spec sheets, with parameters, licenses and reasoning modes, are in [Mod
 The billing column says how each model is paid for:
 
 - **`credits`** draws from your plan's credits, then from your credit packs. The pool goes back to full when your billing period starts in Stripe, which is almost never the 1st. A cheaper model per token simply makes the same credits last longer.
-- **`credits · larger model`** works the same way, but the model costs more per token, so the same work uses credits faster. `glm5.3` also has a token cap for each rolling 4-hour window, which is the one an intensive agent session hits first.
+- **`credits · larger model`** works the same way, but the model costs more per token, so the same work uses credits faster.
 - **`no counter`** means the model does not draw credits, not that it is infinite: the requests-per-minute limits apply to all of them just the same.
 - **`requests/month`** is the image budget: its own counter, which goes back to zero with the calendar month and does not touch your credits.
 
