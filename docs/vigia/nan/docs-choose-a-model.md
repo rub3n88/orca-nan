@@ -41,8 +41,10 @@ Weighing models by cost? The [community model guide](/model-guide) compares the 
 | `glm5.3-flash`      | Coding agents, fewer credits                                      | 1M      | text · image         | credits                          |
 | `qwen3.8-flash`     | Fast answers                                                      | 1M      | text · image         | credits                          |
 | `mimo-v2.6-flash`   | The newest MiMo, omnimodal                                        | 1M      | text · image · audio | credits                          |
+| `hy4-flash`         | The fast Hunyuan 4, at flash-model credits                        | 1M      | text · image         | credits                          |
 | `kimi-k3.1-pro`     | Frontier reasoning for agents and coding                          | 1M      | text · image         | credits · larger model           |
 | `qwen3.8-max`       | The largest Qwen 3.8, hard reasoning                              | 1M      | text · image         | credits · larger model           |
+| `qwen4-max`         | The Qwen 4 flagship, hard reasoning, agents and coding            | 1M      | text · image         | credits · larger model           |
 | `deepseek-v4-pro`   | Large reasoning and coding model                                  | 1M      | text                 | credits · larger model           |
 | `hy4`               | Agents and long documents, the lowest-priced of the larger models | 1M      | text · image         | credits · larger model           |
 | `gemma4`            | Short tasks and testing                                           | 262K    | text · image         | no counter                       |
@@ -57,7 +59,7 @@ Weighing models by cost? The [community model guide](/model-guide) compares the 
 The full spec sheets, with parameters, licenses and reasoning modes, are in [Models](/docs/models).
 
 > **One pool of credits for every model**
-> Inference and Premium include credits every billing period: 7,000 on Inference, 20,000 on Premium. Every model marked **credits** draws from that same pool, by its price per token (input, cached input and output), so there is no separate allowance per model. The ones marked **larger model** (`glm5.3`, `kimi-k3.1-pro`, `qwen3.8-max`, `deepseek-v4-pro`, `hy4`) are called the same way and use credits faster. The price of each model per 1M tokens is on its card at [cloud.nan.builders/tokens](https://cloud.nan.builders/tokens).
+> Inference and Premium include credits every billing period: 7,000 on Inference, 20,000 on Premium. Every model marked **credits** draws from that same pool, by its price per token (input, cached input and output), so there is no separate allowance per model. The ones marked **larger model** (`glm5.3`, `kimi-k3.1-pro`, `qwen3.8-max`, `qwen4-max`, `deepseek-v4-pro`, `hy4`) are called the same way and use credits faster. The price of each model per 1M tokens is on its card at [cloud.nan.builders/tokens](https://cloud.nan.builders/tokens).
 >
 > When the pool is spent, requests draw from your [credit packs](https://cloud.nan.builders/dashboard?buy=credits). Without credits left, the answer is a **`402`** `insufficient_balance`, which a credit pack or your next billing period fixes and retrying does not. The Community plan and accounts without a membership include no credits: they can buy credit packs and use these models with them.
 

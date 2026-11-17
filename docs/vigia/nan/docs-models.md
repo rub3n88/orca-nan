@@ -117,6 +117,28 @@ The newest Xiaomi MiMo, natively omnimodal with vision and audio input. 1M token
 - Streaming generation (SSE)
 - Price per 1M tokens at [cloud.nan.builders/tokens](https://cloud.nan.builders/tokens)
 
+### hy4-flash - flash
+
+Hy4 Flash: Tencent's fast Hunyuan 4 model. Vision (image input). 1M token context. Tool calling and reasoning. Paid from your credits, at the same price per token as deepseek-v4-flash.
+
+**text generation, chat & vision · reasoning**
+
+- Context: 1M tokens
+- Max answer: 64K tokens
+- Input modalities: text · image
+- Output modalities: text
+- Billing: credits
+
+**capabilities**
+
+- Tool calling (function calling)
+- Reasons by default, with no default level applied. `max_tokens` bounds reasoning plus answer, so a small one (a few hundred tokens) can return empty `content`. To turn reasoning off send `reasoning_effort`: `none`; the model ignores `enable_thinking` on its own · [details](#controlling-reasoning)
+- Structured output (`json_object` and `json_schema`)
+- Vision (image input)
+- 1M token context
+- Streaming generation (SSE)
+- Price per 1M tokens at [cloud.nan.builders/tokens](https://cloud.nan.builders/tokens)
+
 ### kimi-k3.1-pro - larger model
 
 Kimi K3.1 Pro: Moonshot AI's frontier reasoning model, for agents and coding. Vision (image input). 1M token context. Paid from your credits like every other chat model, and one of the larger models: it costs more per token than the flash models, so it uses credits faster.
@@ -154,6 +176,28 @@ Qwen3.8 Max: the largest Qwen 3.8 model, for hard reasoning and agents. Vision (
 
 - Tool calling (function calling)
 - Reasoning model (`reasoning_effort`: `none` turns it off; `max_tokens` bounds only the answer, `max_completion_tokens` caps the total) · [details](#controlling-reasoning)
+- Vision (image input)
+- 1M token context
+- Streaming generation (SSE)
+- Price per 1M tokens at [cloud.nan.builders/tokens](https://cloud.nan.builders/tokens)
+
+### qwen4-max - larger model
+
+Qwen4 Max: Alibaba's Qwen 4 flagship model, for hard reasoning, agents and coding. Vision (image input). 1M token context. Paid from your credits like every other chat model, and one of the larger models: it costs more per token than the flash models, so it uses credits faster.
+
+**text generation, chat & vision · reasoning**
+
+- Context: 1M tokens
+- Max answer: 131K tokens
+- Input modalities: text · image
+- Output modalities: text
+- Billing: credits · larger model
+
+**capabilities**
+
+- Tool calling (function calling)
+- Reasoning model (`reasoning_effort`: `none` turns it off · `minimal` to `max`; `max_tokens` bounds reasoning plus answer) · [details](#controlling-reasoning)
+- Structured output: `json_schema`, and `json_object` when the prompt mentions JSON (without the word, a 400)
 - Vision (image input)
 - 1M token context
 - Streaming generation (SSE)
@@ -361,9 +405,9 @@ Qwen image model for text-to-image with strong prompt adherence and clean text r
 
 ## Controlling reasoning.
 
-Every chat model above reasons before it answers. The four larger models
-added in November (`kimi-k3.1-pro`, `qwen3.8-max`, `deepseek-v4-pro`, `hy4`) are not in
-the table below yet: they take `reasoning_effort` like any other model, but how
+Every chat model above reasons before it answers. The models added in
+November (`kimi-k3.1-pro`, `qwen3.8-max`, `deepseek-v4-pro`, `hy4`, `qwen4-max`,
+`hy4-flash`) are not in the table below yet: they take `reasoning_effort` like any other model, but how
 each level behaves on them is not part of this contract. The reasoning arrives
 separately from the answer: in `message.reasoning_content` on Chat Completions,
 as a `reasoning` output item on Responses. One parameter controls it, the same
@@ -383,6 +427,15 @@ use `max_completion_tokens`; a small value can be spent entirely on reasoning, l
 To turn reasoning off, send `reasoning_effort: "none"`.
 A reasoning budget (`thinking_budget` or `thinking_token_budget`) is not honoured on this model.
 
+**`qwen4-max`** reasons before answering too, but unlike `qwen3.8-max` its `max_tokens` bounds
+the total, reasoning plus answer, up to 131,000. A small value can be spent entirely on reasoning,
+leaving an empty answer. Without a budget an open-ended answer can run for many minutes, so set one.
+To turn reasoning off, send `reasoning_effort: "none"`.
+
+**`hy4-flash`** reasons by default, and `max_tokens` bounds reasoning plus answer, up to 64,000:
+a small value (a few hundred tokens) can come back with an empty answer, all reasoning.
+To turn reasoning off, send `reasoning_effort: "none"`; the model ignores `enable_thinking` on its own.
+
 **To turn reasoning off, send `none`.** That is the whole switch. It works on
 every model except GLM, which cannot stop reasoning (see the table).
 
@@ -393,7 +446,9 @@ at the top level of the body or inside `extra_body`. Each one means exactly
 `none`. If a request carries both a value and one of these, the value wins.
 These aliases are not mapped on `kimi-k3.1-pro` and `deepseek-v4-pro`: on those
 two, use `reasoning_effort`. On `hy4` they are mapped, and a request that names
-no level at all gets `low`.
+no level at all gets `low`. On `hy4-flash` they are mapped too, with no default
+level: it reasons unless you turn it off. On `qwen4-max` they work as well, and
+`reasoning_effort: "none"` turns reasoning off.
 
 | Model                     | Off switch (`none`)                                                                                      | The other values                                                                                                                                                                                                                                   |
 | ------------------------- | -------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -619,6 +674,8 @@ Audio, embedding and rerank endpoints have no concurrency limit.
 - deepseek-v4-pro: 6.29M tpm
 - qwen3.8-max: 6M tpm
 - hy4: 6M tpm
+- qwen4-max: 6M tpm
+- hy4-flash: 6M tpm
 - mimo-v2.6-flash: 4.2M tpm
 - qwen3.6: 3.14M tpm
 - gemma4: 1.04M tpm
