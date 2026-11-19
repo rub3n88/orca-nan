@@ -54,11 +54,13 @@
 /api/billing/checkout
 /api/billing/downgrade-community
 /api/billing/downgrade-premium
+/api/billing/downgrade-to-gentle
 /api/billing/invoices
 /api/billing/migrate-currency
 /api/billing/payment-method
 /api/billing/portal
 /api/billing/switch-to-gentle
+/api/billing/undo-gentle-downgrade
 /api/billing/upgrade-gentle
 /api/billing/upgrade-premium
 /api/billing/workspace-subscriptions
