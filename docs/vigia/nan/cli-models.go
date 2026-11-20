@@ -13,7 +13,7 @@
 // the platform moves one, this is the file to change.
 package models
 
-// What the model is for. Everything except Chat is here so the Models tab can
+// Kind is what the model is for. Everything except Chat is here so the Models tab can
 // say what an id is; only Chat models go into the tool configs, because a
 // coding agent has nothing to do with a reranker.
 type Kind string

@@ -9,8 +9,8 @@
 .credits.pack_expires_at NoneType
 .credits.period_end str
 .credits.period_start str
-.credits.remaining int
-.credits.used int
+.credits.remaining float
+.credits.used float
 .data[].api_requests int
 .data[].cached_tokens int
 .data[].completion_tokens int
@@ -36,6 +36,6 @@
 .totals.by_model[].total_tokens int
 .totals.cached_tokens int
 .totals.completion_tokens int
-.totals.credits int
+.totals.credits float
 .totals.prompt_tokens int
 .totals.total_tokens int

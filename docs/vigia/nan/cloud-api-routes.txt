@@ -81,6 +81,7 @@
 /api/marketplace/
 /api/marketplace/catalog
 /api/metrics/usage
+/api/metrics/usage/series
 /api/namespace/quota
 /api/onboarding/checkout
 /api/onboarding/complete
